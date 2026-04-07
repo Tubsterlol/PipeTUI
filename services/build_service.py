@@ -1,5 +1,6 @@
 import random
 from services.log_service import LogService
+from services.alert_service import AlertService
 
 class BuildService:
 
@@ -7,6 +8,7 @@ class BuildService:
         self.event_bus = event_bus
         self.database = database
         self.logger = LogService()
+        self.alert_service = AlertService(event_bus)
 
     def run_build(self, project):
 
@@ -23,8 +25,10 @@ class BuildService:
         if result == "success":
             self.logger.write_log("info", f"Build succeeded for {project}")
         else:
-            self.logger.write_log("error", f"Build failed for {project}")
-            self.event_bus.publish("build_failed", project)
+            self.alert_service.alert(
+                "build_failure",
+                f"Build failed for {project}"
+            )
 
     def show_history(self):
 

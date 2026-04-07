@@ -1,5 +1,6 @@
 import random
 from services.log_service import LogService
+from services.alert_service import AlertService
 
 class DeployService:
 
@@ -7,6 +8,7 @@ class DeployService:
         self.event_bus = event_bus
         self.database = database
         self.logger = LogService()
+        self.alert_service = AlertService(event_bus)
 
     def deploy(self, project, environment):
 
@@ -23,5 +25,7 @@ class DeployService:
         if result == "success":
             self.logger.write_log("info", f"Deployment success for {project}")
         else:
-            self.logger.write_log("error", f"Deployment failed for {project}")
-            self.event_bus.publish("deploy_failed", project)
+            self.alert_service.alert(
+            "deploy_failure",
+            f"Deployment failed for {project}"
+        )

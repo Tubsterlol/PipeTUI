@@ -1,20 +1,16 @@
+from datetime import datetime
+from storage.database import Database
+
 class AlertService:
 
-    def __init__(self, event_bus):
+    def __init__(self, event_bus=None):
+        self.db = Database()
+        self.event_bus = event_bus
 
-        event_bus.subscribe("cpu_high", self.cpu_alert)
-        event_bus.subscribe("memory_high", self.memory_alert)
-        event_bus.subscribe("build_failed", self.build_failed)
-        event_bus.subscribe("deploy_failed", self.deploy_failed)
+    def alert(self, alert_type, message):
 
-    def cpu_alert(self, cpu):
-        print(f"[ALERT] High CPU Usage: {cpu}%")
+        timestamp = str(datetime.now())
 
-    def memory_alert(self, memory):
-        print(f"[ALERT] High Memory Usage: {memory}%")
+        print(f"[ALERT] {message}")
 
-    def build_failed(self, project):
-        print(f"[ALERT] Build failed for {project}")
-
-    def deploy_failed(self, project):
-        print(f"[ALERT] Deployment failed for {project}")
+        self.db.insert_alert(alert_type, message, timestamp)

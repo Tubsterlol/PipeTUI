@@ -28,6 +28,15 @@ class Database:
         )
         """)
 
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS alerts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            type TEXT,
+            message TEXT,
+            timestamp TEXT
+        )
+        """)
+
         self.conn.commit()
 
     def insert_build(self, project, status):
@@ -57,3 +66,22 @@ class Database:
 
         self.cursor.execute("SELECT * FROM deployments ORDER BY id DESC")
         return self.cursor.fetchall()
+    
+
+    def insert_alert(self, alert_type, message, timestamp):
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "INSERT INTO alerts(type, message, timestamp) VALUES (?, ?, ?)",
+            (alert_type, message, timestamp)
+        )
+        self.conn.commit()
+
+    def get_alerts(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT * FROM alerts ORDER BY id DESC")
+        return cursor.fetchall()
+
+    def clear_alerts(self):
+        cursor = self.conn.cursor()
+        cursor.execute("DELETE FROM alerts")
+        self.conn.commit()
