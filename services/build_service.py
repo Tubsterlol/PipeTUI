@@ -2,6 +2,7 @@ import random
 from services.log_service import LogService
 from services.alert_service import AlertService
 
+
 class BuildService:
 
     def __init__(self, event_bus, database):

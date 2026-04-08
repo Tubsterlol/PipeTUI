@@ -113,3 +113,16 @@ def filter(level):
 
     logger = LogService()
     logger.filter_logs(level)
+
+@click.command()
+def reset():
+    db = Database()
+    cursor = db.conn.cursor()
+
+    cursor.execute("DELETE FROM builds")
+    cursor.execute("DELETE FROM deployments")
+    cursor.execute("DELETE FROM alerts")
+
+    db.conn.commit()
+
+    click.echo("All build, deployment, and alert history cleared.")

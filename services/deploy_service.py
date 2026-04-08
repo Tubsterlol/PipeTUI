@@ -10,13 +10,14 @@ class DeployService:
         self.logger = LogService()
         self.alert_service = AlertService(event_bus)
 
-    def deploy(self, project, environment):
+    def deploy(self, project, environment, plugin=None):
 
         print(f"Deploying {project} to {environment}")
 
-        self.logger.write_log("info", f"Deployment started for {project} to {environment}")
-
-        result = random.choice(["success", "failed"])
+        if plugin:
+            result = plugin.deploy(project)
+        else:
+            result = random.choice(["success", "failed"])
 
         print("Deployment result:", result)
 
@@ -26,6 +27,6 @@ class DeployService:
             self.logger.write_log("info", f"Deployment success for {project}")
         else:
             self.alert_service.alert(
-            "deploy_failure",
-            f"Deployment failed for {project}"
-        )
+                "deploy_failure",
+                f"Deployment failed for {project}"
+            )

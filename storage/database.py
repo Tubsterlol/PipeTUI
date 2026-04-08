@@ -1,30 +1,39 @@
 import sqlite3
 
+
 class Database:
 
     def __init__(self):
         self.conn = sqlite3.connect("devops.db")
         self.cursor = self.conn.cursor()
-        self.initialize()
+        self.initialize_tables()
 
-    def initialize(self):
+    def initialize_tables(self):
 
+        # projects registry
         self.cursor.execute("""
-        CREATE TABLE IF NOT EXISTS builds(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            project TEXT,
-            status TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        CREATE TABLE IF NOT EXISTS projects (
+            name TEXT PRIMARY KEY,
+            path TEXT
         )
         """)
 
+        # build history
         self.cursor.execute("""
-        CREATE TABLE IF NOT EXISTS deployments(
+        CREATE TABLE IF NOT EXISTS builds (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project TEXT,
+            status TEXT
+        )
+        """)
+
+        # deployment history
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS deployments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             project TEXT,
             environment TEXT,
-            status TEXT,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            status TEXT
         )
         """)
 
@@ -39,10 +48,41 @@ class Database:
 
         self.conn.commit()
 
+    # -----------------
+    # PROJECT FUNCTIONS
+    # -----------------
+
+    def insert_project(self, name, path):
+
+        self.cursor.execute(
+            "INSERT INTO projects (name, path) VALUES (?, ?)",
+            (name, path)
+        )
+
+        self.conn.commit()
+
+    def get_projects(self):
+
+        self.cursor.execute("SELECT name, path FROM projects")
+        return self.cursor.fetchall()
+
+    def get_project(self, name):
+
+        self.cursor.execute(
+            "SELECT name, path FROM projects WHERE name=?",
+            (name,)
+        )
+
+        return self.cursor.fetchone()
+
+    # -----------------
+    # BUILD FUNCTIONS
+    # -----------------
+
     def insert_build(self, project, status):
 
         self.cursor.execute(
-            "INSERT INTO builds(project, status) VALUES (?,?)",
+            "INSERT INTO builds (project, status) VALUES (?, ?)",
             (project, status)
         )
 
@@ -50,38 +90,44 @@ class Database:
 
     def get_builds(self):
 
-        self.cursor.execute("SELECT * FROM builds ORDER BY id DESC")
+        self.cursor.execute("SELECT project, status FROM builds")
         return self.cursor.fetchall()
 
-    def insert_deployment(self, project, env, status):
+    # -----------------
+    # DEPLOY FUNCTIONS
+    # -----------------
+
+    def insert_deployment(self, project, environment, status):
 
         self.cursor.execute(
-            "INSERT INTO deployments(project, environment, status) VALUES (?,?,?)",
-            (project, env, status)
+            "INSERT INTO deployments (project, environment, status) VALUES (?, ?, ?)",
+            (project, environment, status)
         )
 
         self.conn.commit()
 
     def get_deployments(self):
 
-        self.cursor.execute("SELECT * FROM deployments ORDER BY id DESC")
+        self.cursor.execute(
+            "SELECT project, environment, status FROM deployments"
+        )
+
         return self.cursor.fetchall()
     
-
     def insert_alert(self, alert_type, message, timestamp):
-        cursor = self.conn.cursor()
-        cursor.execute(
-            "INSERT INTO alerts(type, message, timestamp) VALUES (?, ?, ?)",
+
+        self.cursor.execute(
+            "INSERT INTO alerts (type, message, timestamp) VALUES (?, ?, ?)",
             (alert_type, message, timestamp)
         )
+
         self.conn.commit()
+
 
     def get_alerts(self):
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT * FROM alerts ORDER BY id DESC")
-        return cursor.fetchall()
 
-    def clear_alerts(self):
-        cursor = self.conn.cursor()
-        cursor.execute("DELETE FROM alerts")
-        self.conn.commit()
+        self.cursor.execute(
+            "SELECT type, message, timestamp FROM alerts"
+        )
+
+        return self.cursor.fetchall()
