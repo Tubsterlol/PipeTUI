@@ -1,4 +1,4 @@
-from cli.command_handler import cli, reset
+from cli.command_handler import cli, reset, help
 from plugins.plugin_manager import PluginManager
 from cli.alert_commands import alerts
 from cli.dashboard_commands import dashboard
@@ -18,6 +18,7 @@ cli.add_command(dashboard)
 cli.add_command(docker)
 cli.add_command(project)
 cli.add_command(reset)
+cli.add_command(help)
 
 if __name__ == "__main__":
 
