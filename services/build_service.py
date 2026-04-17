@@ -1,39 +1,39 @@
-import random
-from services.log_service import LogService
-from services.alert_service import AlertService
+import subprocess
+import time
 
 
 class BuildService:
 
-    def __init__(self, event_bus, database):
+    def __init__(self, event_bus, db):
         self.event_bus = event_bus
-        self.database = database
-        self.logger = LogService()
-        self.alert_service = AlertService(event_bus)
+        self.db = db
 
-    def run_build(self, project):
+    def run_build(self, project_path, command):
 
-        print(f"Running build for {project}")
+        start = time.time()
 
-        self.logger.write_log("info", f"Build started for {project}")
+        process = subprocess.Popen(
+            command,
+            cwd=project_path,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
 
-        result = random.choice(["success", "failed"])
+        log = ""
 
-        print("Build result:", result)
+        for line in process.stdout:
+            log += line
+            print(line, end="")
 
-        self.database.insert_build(project, result)
+        process.wait()
 
-        if result == "success":
-            self.logger.write_log("info", f"Build succeeded for {project}")
-        else:
-            self.alert_service.alert(
-                "build_failure",
-                f"Build failed for {project}"
-            )
+        duration = round(time.time() - start, 2)
 
-    def show_history(self):
+        status = "success" if process.returncode == 0 else "failed"
 
-        builds = self.database.get_builds()
-
-        for b in builds:
-            print(b)
+        return {
+            "status": status,
+            "duration": duration,
+            "log": log
+        }

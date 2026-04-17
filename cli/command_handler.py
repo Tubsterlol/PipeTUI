@@ -1,5 +1,6 @@
 import click
 import threading
+import os
 
 from core.event_bus import EventBus
 from services.monitor_service import MonitorService
@@ -15,6 +16,10 @@ from config import Config
 def cli():
     pass
 
+
+# -------------------------
+# SYSTEM COMMANDS
+# -------------------------
 
 @cli.command()
 def start():
@@ -34,13 +39,19 @@ def start():
     t.join()
 
 
+@cli.command()
+def status():
+    print("DevOps system running")
+
+
+# -------------------------
+# BUILD COMMANDS
+# -------------------------
+
 @cli.group()
 def build():
     pass
 
-@cli.command()
-def status():
-    print("DevOps system running")
 
 @build.command()
 @click.argument("project")
@@ -53,18 +64,54 @@ def run(project):
 
     build_service = BuildService(event_bus, db)
 
-    build_service.run_build(project)
+    project_data = db.get_project(project)
+
+    if not project_data:
+        click.echo(f"Project '{project}' not found")
+        return
+
+    project_path = project_data["path"]
+
+    # Detect build system
+    if os.path.exists(f"{project_path}/package.json"):
+        command = ["npm", "run", "build"]
+
+    elif os.path.exists(f"{project_path}/Makefile"):
+        command = ["make"]
+
+    elif os.path.exists(f"{project_path}/build.py"):
+        command = ["python", "build.py"]
+
+    else:
+        command = ["echo", "No build system detected"]
+
+    result = build_service.run_build(project_path, command)
+
+    click.echo(f"Build status: {result['status']}")
+    click.echo(f"Duration: {result['duration']}s")
 
 
 @build.command()
 def history():
 
     db = Database()
-
     builds = db.get_builds()
 
+    if not builds:
+        click.echo("No builds found.")
+        return
+
+    click.echo("")
+    click.echo("BUILD HISTORY")
+    click.echo("-------------")
+
     for b in builds:
-        print(b)
+        click.echo(f"{b[0]} | {b[1]} | {b[2]} | {b[3]}")
+
+
+# -------------------------
+# DEPLOY COMMANDS
+# -------------------------
 
 @cli.group()
 def deploy():
@@ -93,12 +140,22 @@ def history():
 
     deployments = db.get_deployments()
 
+    if not deployments:
+        click.echo("No deployments found.")
+        return
+
     for d in deployments:
-        print(d)
+        click.echo(d)
+
+
+# -------------------------
+# LOG COMMANDS
+# -------------------------
 
 @cli.group()
 def logs():
     pass
+
 
 @logs.command()
 def show():
@@ -114,8 +171,38 @@ def filter(level):
     logger = LogService()
     logger.filter_logs(level)
 
-@click.command()
+
+# -------------------------
+# PROJECT COMMANDS
+# -------------------------
+
+@cli.group()
+def project():
+    pass
+
+
+@project.command()
+def list():
+
+    db = Database()
+
+    projects = db.get_projects()
+
+    if not projects:
+        click.echo("No projects registered.")
+        return
+
+    for p in projects:
+        click.echo(f"{p[0]} -> {p[1]}")
+
+
+# -------------------------
+# RESET COMMAND
+# -------------------------
+
+@cli.command()
 def reset():
+
     db = Database()
     cursor = db.conn.cursor()
 
@@ -127,7 +214,12 @@ def reset():
 
     click.echo("All build, deployment, and alert history cleared.")
 
-@click.command()
+
+# -------------------------
+# HELP COMMAND
+# -------------------------
+
+@cli.command()
 def help():
 
     click.echo("")
@@ -135,50 +227,30 @@ def help():
     click.echo("----------------")
     click.echo("A lightweight CLI DevOps control system.")
     click.echo("")
-    click.echo("The system simulates a simplified CI/CD workflow.")
-    click.echo("It allows you to run builds, deploy projects, track activity,")
-    click.echo("and monitor everything from a terminal dashboard.")
-    click.echo("")
-
-    click.echo("TUI DASHBOARD")
-    click.echo("-------------")
-    click.echo("The dashboard is a live terminal interface that displays:")
-    click.echo("• System CPU and memory usage")
-    click.echo("• Recent alerts")
-    click.echo("• Build history")
-    click.echo("• Deployment history")
-    click.echo("• Recent DevOps activity")
-    click.echo("")
 
     click.echo("AVAILABLE COMMANDS")
     click.echo("------------------")
 
     click.echo("Add a project")
-    click.echo("  python main.py project add <project_name> <path>")
-    click.echo("  Registers a project so it can be built and deployed.")
+    click.echo("  pipetui project add <project_name> <path>")
     click.echo("")
 
     click.echo("Run a build")
-    click.echo("  python main.py build run <project_name>")
-    click.echo("  Executes a build process and records the result.")
+    click.echo("  pipetui build run <project_name>")
+    click.echo("")
+
+    click.echo("Show build history")
+    click.echo("  pipetui build history")
     click.echo("")
 
     click.echo("Deploy a project")
-    click.echo("  python main.py deploy run <project_name> <environment>")
-    click.echo("  Deploys a project to an environment such as dev or prod.")
+    click.echo("  pipetui deploy run <project_name> <environment>")
     click.echo("")
 
-    click.echo("Open the DevOps dashboard")
-    click.echo("  python main.py dashboard")
-    click.echo("  Starts the live monitoring TUI.")
+    click.echo("Show deployment history")
+    click.echo("  pipetui deploy history")
     click.echo("")
 
     click.echo("Reset system history")
-    click.echo("  python main.py reset")
-    click.echo("  Clears build history, deployment history, and alerts.")
-    click.echo("")
-
-    click.echo("Show help")
-    click.echo("  python main.py help")
-    click.echo("  Displays this manual.")
+    click.echo("  pipetui reset")
     click.echo("")

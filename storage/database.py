@@ -3,14 +3,13 @@ import sqlite3
 
 class Database:
 
-    def __init__(self):
-        self.conn = sqlite3.connect("devops.db")
+    def __init__(self, db_name="devops.db"):
+        self.conn = sqlite3.connect(db_name)
         self.cursor = self.conn.cursor()
         self.initialize_tables()
 
     def initialize_tables(self):
 
-        # projects registry
         self.cursor.execute("""
         CREATE TABLE IF NOT EXISTS projects (
             name TEXT PRIMARY KEY,
@@ -18,16 +17,17 @@ class Database:
         )
         """)
 
-        # build history
         self.cursor.execute("""
         CREATE TABLE IF NOT EXISTS builds (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            project TEXT,
-            status TEXT
+            project_name TEXT,
+            status TEXT,
+            started_at TEXT,
+            finished_at TEXT,
+            log TEXT
         )
         """)
 
-        # deployment history
         self.cursor.execute("""
         CREATE TABLE IF NOT EXISTS deployments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -52,14 +52,17 @@ class Database:
     # PROJECT FUNCTIONS
     # -----------------
 
-    def insert_project(self, name, path):
+    def add_project(self, name, path):
 
-        self.cursor.execute(
-            "INSERT INTO projects (name, path) VALUES (?, ?)",
-            (name, path)
-        )
+        try:
+            self.cursor.execute(
+                "INSERT INTO projects (name, path) VALUES (?, ?)",
+                (name, path)
+            )
+            self.conn.commit()
 
-        self.conn.commit()
+        except sqlite3.IntegrityError:
+            print(f"Project '{name}' already exists.")
 
     def get_projects(self):
 
@@ -69,28 +72,48 @@ class Database:
     def get_project(self, name):
 
         self.cursor.execute(
-            "SELECT name, path FROM projects WHERE name=?",
+            "SELECT name, path FROM projects WHERE name = ?",
             (name,)
         )
 
-        return self.cursor.fetchone()
+        row = self.cursor.fetchone()
+
+        return {"name": row[0], "path": row[1]} if row else None
 
     # -----------------
     # BUILD FUNCTIONS
     # -----------------
 
-    def insert_build(self, project, status):
+    def create_build(self, project):
 
         self.cursor.execute(
-            "INSERT INTO builds (project, status) VALUES (?, ?)",
-            (project, status)
+            "INSERT INTO builds (project_name, status, started_at) VALUES (?, ?, datetime('now'))",
+            (project, "running")
+        )
+
+        self.conn.commit()
+
+        return self.cursor.lastrowid
+
+    def finish_build(self, build_id, status, log):
+
+        self.cursor.execute(
+            """
+            UPDATE builds
+            SET status=?, finished_at=datetime('now'), log=?
+            WHERE id=?
+            """,
+            (status, log, build_id)
         )
 
         self.conn.commit()
 
     def get_builds(self):
 
-        self.cursor.execute("SELECT project, status FROM builds")
+        self.cursor.execute(
+            "SELECT id,project_name,status, started_at FROM builds ORDER BY id DESC"
+        )
+
         return self.cursor.fetchall()
 
     # -----------------
@@ -113,7 +136,11 @@ class Database:
         )
 
         return self.cursor.fetchall()
-    
+
+    # -----------------
+    # ALERT FUNCTIONS
+    # -----------------
+
     def insert_alert(self, alert_type, message, timestamp):
 
         self.cursor.execute(
@@ -123,7 +150,6 @@ class Database:
 
         self.conn.commit()
 
-
     def get_alerts(self):
 
         self.cursor.execute(
@@ -131,3 +157,11 @@ class Database:
         )
 
         return self.cursor.fetchall()
+
+    # -----------------
+    # CLEANUP
+    # -----------------
+
+    def close(self):
+
+        self.conn.close()
