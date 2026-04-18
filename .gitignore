@@ -1,5 +1,5 @@
 # Python bytecode
-__pycache__/
+**/__pycache__/
 *.pyc
 *.pyo
 *.pyd
@@ -21,7 +21,12 @@ dist/
 *.db
 
 # Logs
-logs/*.log
+logs/
+*.log
+
+# Environment variables
+.env
+.env.*
 
 # OS files
 .DS_Store
@@ -39,8 +44,10 @@ htmlcov/
 # Python packaging cache
 pip-wheel-metadata/
 
-# Mypy / type checking
+# Type checking / lint caches
 .mypy_cache/
-
-# Ruff / lint cache
 .ruff_cache/
+
+# Misc
+.cache/
+.python-version
