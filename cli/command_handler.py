@@ -12,8 +12,10 @@ from services.log_service import LogService
 from config import Config
 
 
-@click.group()
+@click.group(context_settings={"help_option_names": ["-h", "--help"]})
+@click.version_option("0.1.0", prog_name="PipeTUI")
 def cli():
+    """PipeTUI DevOps CLI"""
     pass
 
 
@@ -23,6 +25,7 @@ def cli():
 
 @cli.command()
 def start():
+    """Start DevOps monitoring service"""
 
     config = Config()
     event_bus = EventBus()
@@ -32,16 +35,25 @@ def start():
     monitor = MonitorService(event_bus, config)
 
     t = threading.Thread(target=monitor.start_monitoring)
+    t.daemon = True
     t.start()
 
-    print("DevOps monitoring started")
+    click.echo("")
+    click.echo("DevOps monitoring started")
+    click.echo("Press CTRL+C to stop")
+    click.echo("")
 
     t.join()
 
 
 @cli.command()
 def status():
-    print("DevOps system running")
+    """Check system status"""
+    click.echo("")
+    click.echo("PIPE TUI STATUS")
+    click.echo("----------------")
+    click.echo("DevOps system running")
+    click.echo("")
 
 
 # -------------------------
@@ -50,12 +62,14 @@ def status():
 
 @cli.group()
 def build():
+    """Build related commands"""
     pass
 
 
 @build.command()
 @click.argument("project")
 def run(project):
+    """Run build for a project"""
 
     event_bus = EventBus()
     db = Database()
@@ -70,9 +84,9 @@ def run(project):
         click.echo(f"Project '{project}' not found")
         return
 
+    project_name = project_data["name"]
     project_path = project_data["path"]
 
-    # Detect build system
     if os.path.exists(f"{project_path}/package.json"):
         command = ["npm", "run", "build"]
 
@@ -85,14 +99,26 @@ def run(project):
     else:
         command = ["echo", "No build system detected"]
 
-    result = build_service.run_build(project_path, command)
+    result = build_service.run_build(project_name, project_path, command)
 
-    click.echo(f"Build status: {result['status']}")
-    click.echo(f"Duration: {result['duration']}s")
+    click.echo("")
+    click.echo("BUILD RESULT")
+    click.echo("-------------")
+    click.echo(f"Project  : {project}")
+    click.echo(f"Status   : {result['status']}")
+    click.echo(f"Duration : {result['duration']}s")
+    click.echo("")
+
+    if result.get("stdout"):
+        click.echo(result["stdout"])
+
+    if result.get("stderr"):
+        click.echo(result["stderr"])
 
 
 @build.command()
 def history():
+    """Show build history"""
 
     db = Database()
     builds = db.get_builds()
@@ -108,6 +134,8 @@ def history():
     for b in builds:
         click.echo(f"{b[0]} | {b[1]} | {b[2]} | {b[3]}")
 
+    click.echo("")
+
 
 # -------------------------
 # DEPLOY COMMANDS
@@ -115,6 +143,7 @@ def history():
 
 @cli.group()
 def deploy():
+    """Deployment commands"""
     pass
 
 
@@ -122,6 +151,7 @@ def deploy():
 @click.argument("project")
 @click.argument("environment")
 def run(project, environment):
+    """Deploy project to environment"""
 
     event_bus = EventBus()
     db = Database()
@@ -130,11 +160,16 @@ def run(project, environment):
 
     deploy_service = DeployService(event_bus, db)
 
+    click.echo("")
+    click.echo(f"Deploying {project} to {environment}")
+    click.echo("")
+
     deploy_service.deploy(project, environment)
 
 
 @deploy.command()
 def history():
+    """Show deployment history"""
 
     db = Database()
 
@@ -144,8 +179,14 @@ def history():
         click.echo("No deployments found.")
         return
 
+    click.echo("")
+    click.echo("DEPLOYMENT HISTORY")
+    click.echo("------------------")
+
     for d in deployments:
         click.echo(d)
+
+    click.echo("")
 
 
 # -------------------------
@@ -154,11 +195,13 @@ def history():
 
 @cli.group()
 def logs():
+    """Log related commands"""
     pass
 
 
 @logs.command()
 def show():
+    """Show all logs"""
 
     logger = LogService()
     logger.show_logs()
@@ -167,6 +210,7 @@ def show():
 @logs.command()
 @click.argument("level")
 def filter(level):
+    """Filter logs by level"""
 
     logger = LogService()
     logger.filter_logs(level)
@@ -178,11 +222,13 @@ def filter(level):
 
 @cli.group()
 def project():
+    """Project management commands"""
     pass
 
 
 @project.command()
 def list():
+    """List registered projects"""
 
     db = Database()
 
@@ -192,8 +238,31 @@ def list():
         click.echo("No projects registered.")
         return
 
+    click.echo("")
+    click.echo("REGISTERED PROJECTS")
+    click.echo("-------------------")
+
     for p in projects:
         click.echo(f"{p[0]} -> {p[1]}")
+
+    click.echo("")
+
+
+@project.command()
+@click.argument("name")
+@click.argument("path")
+def add(name, path):
+    """Register a new project"""
+
+    db = Database()
+
+    if not os.path.exists(path):
+        click.echo("Path does not exist.")
+        return
+
+    db.add_project(name, path)
+
+    click.echo(f"Project '{name}' added.")
 
 
 # -------------------------
@@ -202,6 +271,7 @@ def list():
 
 @cli.command()
 def reset():
+    """Clear build, deployment and alert history"""
 
     db = Database()
     cursor = db.conn.cursor()
@@ -213,44 +283,3 @@ def reset():
     db.conn.commit()
 
     click.echo("All build, deployment, and alert history cleared.")
-
-
-# -------------------------
-# HELP COMMAND
-# -------------------------
-
-@cli.command()
-def help():
-
-    click.echo("")
-    click.echo("DEVOPS DASHBOARD")
-    click.echo("----------------")
-    click.echo("A lightweight CLI DevOps control system.")
-    click.echo("")
-
-    click.echo("AVAILABLE COMMANDS")
-    click.echo("------------------")
-
-    click.echo("Add a project")
-    click.echo("  pipetui project add <project_name> <path>")
-    click.echo("")
-
-    click.echo("Run a build")
-    click.echo("  pipetui build run <project_name>")
-    click.echo("")
-
-    click.echo("Show build history")
-    click.echo("  pipetui build history")
-    click.echo("")
-
-    click.echo("Deploy a project")
-    click.echo("  pipetui deploy run <project_name> <environment>")
-    click.echo("")
-
-    click.echo("Show deployment history")
-    click.echo("  pipetui deploy history")
-    click.echo("")
-
-    click.echo("Reset system history")
-    click.echo("  pipetui reset")
-    click.echo("")

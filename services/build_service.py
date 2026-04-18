@@ -8,7 +8,9 @@ class BuildService:
         self.event_bus = event_bus
         self.db = db
 
-    def run_build(self, project_path, command):
+    def run_build(self, project_name, project_path, command):
+
+        build_id = self.db.create_build(project_name)
 
         start = time.time()
 
@@ -31,6 +33,8 @@ class BuildService:
         duration = round(time.time() - start, 2)
 
         status = "success" if process.returncode == 0 else "failed"
+
+        self.db.finish_build(build_id, status, log)
 
         return {
             "status": status,

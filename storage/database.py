@@ -8,6 +8,64 @@ class Database:
         self.cursor = self.conn.cursor()
         self.initialize_tables()
 
+    # -----------------
+    # PROJECT INFO HELPERS
+    # -----------------
+
+    def get_last_build(self, project):
+
+        cursor = self.conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT status, started_at, finished_at
+            FROM builds
+            WHERE project_name=?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (project,)
+        )
+
+        return cursor.fetchone()
+
+    def get_last_deployment(self, project):
+
+        cursor = self.conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT environment, status
+            FROM deployments
+            WHERE project=?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (project,)
+        )
+
+        return cursor.fetchone()
+
+    def get_build_stats(self, project):
+
+        cursor = self.conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT COUNT(*),
+                   SUM(CASE WHEN status='success' THEN 1 ELSE 0 END)
+            FROM builds
+            WHERE project_name=?
+            """,
+            (project,)
+        )
+
+        return cursor.fetchone()
+
+    # -----------------
+    # TABLE INITIALIZATION
+    # -----------------
+
     def initialize_tables(self):
 
         self.cursor.execute("""
@@ -72,7 +130,7 @@ class Database:
     def get_project(self, name):
 
         self.cursor.execute(
-            "SELECT name, path FROM projects WHERE name = ?",
+            "SELECT name, path FROM projects WHERE name=?",
             (name,)
         )
 
@@ -87,7 +145,10 @@ class Database:
     def create_build(self, project):
 
         self.cursor.execute(
-            "INSERT INTO builds (project_name, status, started_at) VALUES (?, ?, datetime('now'))",
+            """
+            INSERT INTO builds (project_name, status, started_at)
+            VALUES (?, ?, datetime('now'))
+            """,
             (project, "running")
         )
 
@@ -111,7 +172,11 @@ class Database:
     def get_builds(self):
 
         self.cursor.execute(
-            "SELECT id,project_name,status, started_at FROM builds ORDER BY id DESC"
+            """
+            SELECT id, project_name, status, started_at
+            FROM builds
+            ORDER BY id DESC
+            """
         )
 
         return self.cursor.fetchall()
@@ -123,7 +188,10 @@ class Database:
     def insert_deployment(self, project, environment, status):
 
         self.cursor.execute(
-            "INSERT INTO deployments (project, environment, status) VALUES (?, ?, ?)",
+            """
+            INSERT INTO deployments (project, environment, status)
+            VALUES (?, ?, ?)
+            """,
             (project, environment, status)
         )
 
@@ -144,7 +212,10 @@ class Database:
     def insert_alert(self, alert_type, message, timestamp):
 
         self.cursor.execute(
-            "INSERT INTO alerts (type, message, timestamp) VALUES (?, ?, ?)",
+            """
+            INSERT INTO alerts (type, message, timestamp)
+            VALUES (?, ?, ?)
+            """,
             (alert_type, message, timestamp)
         )
 

@@ -1,0 +1,115 @@
+.TH PIPETUI 1 "April 2026" "PipeTUI 0.1.0" "PipeTUI DevOps CLI"
+
+.SH NAME
+pipetui \- lightweight DevOps pipeline CLI
+
+.SH SYNOPSIS
+.B pipetui
+[\fICOMMAND\fR] [\fIOPTIONS\fR]
+
+.SH DESCRIPTION
+PipeTUI is a lightweight DevOps command line interface for managing
+projects, builds, deployments, logs, and monitoring pipelines.
+
+It provides a simple local DevOps workflow without requiring complex
+CI/CD infrastructure.
+
+.SH SYSTEM COMMANDS
+.TP
+.B pipetui start
+Start the DevOps monitoring service.
+
+.TP
+.B pipetui status
+Display the current status of the DevOps system.
+
+.TP
+.B pipetui reset
+Clear build, deployment, and alert history.
+
+.SH PROJECT COMMANDS
+.TP
+.B pipetui project add <name> <path>
+Register a new project with PipeTUI.
+
+.TP
+.B pipetui project list
+List all registered projects.
+
+.TP
+.B pipetui project info <name>
+Display detailed information about a project including:
+build status, deployment status, and build statistics.
+
+.SH BUILD COMMANDS
+.TP
+.B pipetui build run <project>
+Run a build for the specified project.
+
+PipeTUI automatically detects the build system:
+
+.RS
+npm projects → npm run build
+.br
+Makefile → make
+.br
+Python build script → python build.py
+.RE
+
+.TP
+.B pipetui build history
+Show build history across all projects.
+
+.SH DEPLOYMENT COMMANDS
+.TP
+.B pipetui deploy run <project> <environment>
+Deploy a project to a target environment.
+
+.TP
+.B pipetui deploy history
+Display deployment history.
+
+.SH LOG COMMANDS
+.TP
+.B pipetui logs show
+Display all recorded logs.
+
+.TP
+.B pipetui logs filter <level>
+Filter logs by severity level (INFO, WARNING, ERROR).
+
+.SH EXAMPLES
+Register a project:
+
+.nf
+pipetui project add api ~/Projects/api
+.fi
+
+Run a build:
+
+.nf
+pipetui build run api
+.fi
+
+Deploy to production:
+
+.nf
+pipetui deploy run api prod
+.fi
+
+Filter error logs:
+
+.nf
+pipetui logs filter ERROR
+.fi
+
+.SH FILES
+.TP
+.I devops.db
+SQLite database used by PipeTUI.
+
+.SH AUTHOR
+PipeTUI Development Team
+
+.SH VERSION
+PipeTUI 0.1.0
