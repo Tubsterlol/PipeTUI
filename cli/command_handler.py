@@ -1,6 +1,7 @@
 import click
 import threading
 import os
+import time
 
 from core.event_bus import EventBus
 from services.monitor_service import MonitorService
@@ -339,3 +340,30 @@ def logs(project, last, build_id):
         click.echo(f"ID:{b[0]} | Status:{b[2]} | Started:{b[3]}")
 
     click.echo("")
+
+@build.command()
+@click.argument("project")
+def tail(project):
+    """Live stream build logs"""
+    db = Database()
+
+    click.echo("")
+    click.echo(f"Streaming build logs for {project}")
+    click.echo("Press CTRL+C to stop")
+    click.echo("")
+    last_length = 0
+    try:
+        while True:
+            build = db.get_last_build_log(project)
+            if not build:
+                time.sleep(1)
+                continue
+            log = build[1] or ""
+            if len(log) > last_length:
+                new_part = log[last_length:]
+                click.echo(new_part, nl=False)
+                last_length = len(log)
+            time.sleep(1)
+    except KeyboardInterrupt:
+        click.echo("")
+        click.echo("Log streaming stopped")

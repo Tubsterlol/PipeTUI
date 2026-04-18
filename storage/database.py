@@ -65,9 +65,23 @@ class Database:
             (project,)
         )
         return cursor.fetchone()
+    
+    def get_last_build_log(self, project):
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            SELECT id, log
+            FROM builds
+            WHERE project_name=?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (project,)
+        )
+        return cursor.fetchone()
+    
     def get_build_log(self, build_id):
         cursor = self.conn.cursor()
-
         cursor.execute(
             """
             SELECT id, project_name, status, log
