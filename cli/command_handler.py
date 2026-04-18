@@ -283,3 +283,59 @@ def reset():
     db.conn.commit()
 
     click.echo("All build, deployment, and alert history cleared.")
+
+@build.command()
+@click.argument("project")
+@click.option("--last", is_flag=True, help="Show last build log")
+@click.option("--id", "build_id", help="Show log for specific build ID")
+def logs(project, last, build_id):
+    """Show build logs"""
+
+    db = Database()
+
+    if last:
+
+        build = db.get_last_build(project)
+
+        if not build:
+            click.echo("No builds found.")
+            return
+
+        click.echo("")
+        click.echo(f"BUILD LOG (ID: {build[0]})")
+        click.echo("--------------------------")
+        click.echo(build[5])
+        click.echo("")
+
+        return
+
+    if build_id:
+
+        build = db.get_build_log(build_id)
+
+        if not build:
+            click.echo("Build not found.")
+            return
+
+        click.echo("")
+        click.echo(f"BUILD LOG (ID: {build[0]})")
+        click.echo("--------------------------")
+        click.echo(build[3])
+        click.echo("")
+
+        return
+
+    builds = db.get_project_builds(project)
+
+    if not builds:
+        click.echo("No builds found.")
+        return
+
+    click.echo("")
+    click.echo("PROJECT BUILDS")
+    click.echo("--------------------------")
+
+    for b in builds:
+        click.echo(f"ID:{b[0]} | Status:{b[2]} | Started:{b[3]}")
+
+    click.echo("")

@@ -12,13 +12,24 @@ class Database:
     # PROJECT INFO HELPERS
     # -----------------
 
-    def get_last_build(self, project):
-
+    def get_project_builds(self, project):
         cursor = self.conn.cursor()
-
         cursor.execute(
             """
-            SELECT status, started_at, finished_at
+            SELECT id, project_name, status, started_at, finished_at
+            FROM builds
+            WHERE project_name=?
+            ORDER BY id DESC
+            """,
+            (project,)
+        )
+        return cursor.fetchall()
+    
+    def get_last_build(self, project):
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            SELECT project_name, status, started_at, finished_at, log
             FROM builds
             WHERE project_name=?
             ORDER BY id DESC
@@ -26,13 +37,10 @@ class Database:
             """,
             (project,)
         )
-
         return cursor.fetchone()
 
     def get_last_deployment(self, project):
-
         cursor = self.conn.cursor()
-
         cursor.execute(
             """
             SELECT environment, status
@@ -43,13 +51,10 @@ class Database:
             """,
             (project,)
         )
-
         return cursor.fetchone()
 
     def get_build_stats(self, project):
-
         cursor = self.conn.cursor()
-
         cursor.execute(
             """
             SELECT COUNT(*),
@@ -59,9 +64,20 @@ class Database:
             """,
             (project,)
         )
-
         return cursor.fetchone()
+    def get_build_log(self, build_id):
+        cursor = self.conn.cursor()
 
+        cursor.execute(
+            """
+            SELECT id, project_name, status, log
+            FROM builds
+            WHERE id = ?
+            """, 
+            (build_id,)
+        )
+        return cursor.fetchone()
+    
     # -----------------
     # TABLE INITIALIZATION
     # -----------------
