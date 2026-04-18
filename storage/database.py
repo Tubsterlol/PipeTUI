@@ -92,6 +92,40 @@ class Database:
         )
         return cursor.fetchone()
     
+    #-----------------
+    # PIPELINES
+    #-----------------
+
+    def create_pipeline(self, project, name):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+        INSERT INTO pipelines (project_name, name, created_at)
+        VALUES (?, ?, datetime('now'))
+        """, (project, name))
+        self.conn.commit()
+
+        return cursor.lastrowid
+    
+    def add_pipeline_step(self, pipeline_id, order, step_type, value):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+        INSERT INTO pipeline_steps (pipeline_id, step_order, step_type, step_value)
+        VALUES (?, ?, ?, ?)
+        """, (pipeline_id, order, step_type, value))
+
+        self.conn.commit()
+    
+    def get_pipeline_steps(self, project):
+        cursor = self.conn.cursor()
+        cursor.execute("""
+        SELECT ps.step_order, ps.step_type, ps.step_value
+        FROM pipelines p
+        JOIN pipeline_steps ps ON p.id = ps.pipeline_id
+        WHERE p.project_name = ?
+        ORDER BY ps.step_order
+        """, (project,))
+
+        return cursor.fetchall()
     # -----------------
     # TABLE INITIALIZATION
     # -----------------
@@ -134,6 +168,24 @@ class Database:
         )
         """)
 
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pipelines (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            project_name TEXT,
+            name TEXT,
+            created_at DATETIME
+        );                                            
+        """)
+
+        self.cursor.execute("""
+        CREATE TABLE IF NOT EXISTS pipeline_steps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            pipeline_id INTEGER,
+            step_order INTEGER,
+            step_type TEXT,
+            step_value TEXT
+        );
+        """)
         self.conn.commit()
 
     # -----------------

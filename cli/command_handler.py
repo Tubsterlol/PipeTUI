@@ -10,7 +10,7 @@ from services.build_service import BuildService
 from storage.database import Database
 from services.deploy_service import DeployService
 from services.log_service import LogService
-from config import Config
+from core.config import Config
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -27,22 +27,17 @@ def cli():
 @cli.command()
 def start():
     """Start DevOps monitoring service"""
-
     config = Config()
     event_bus = EventBus()
 
     AlertService(event_bus)
-
     monitor = MonitorService(event_bus, config)
 
-    t = threading.Thread(target=monitor.start_monitoring)
-    t.daemon = True
+    t = threading.Thread(target=monitor.start_monitoring, daemon=True)
     t.start()
 
-    click.echo("")
-    click.echo("DevOps monitoring started")
-    click.echo("Press CTRL+C to stop")
-    click.echo("")
+    click.echo("\nDevOps monitoring started")
+    click.echo("Press CTRL+C to stop\n")
 
     t.join()
 
@@ -50,11 +45,9 @@ def start():
 @cli.command()
 def status():
     """Check system status"""
-    click.echo("")
-    click.echo("PIPE TUI STATUS")
+    click.echo("\nPIPE TUI STATUS")
     click.echo("----------------")
-    click.echo("DevOps system running")
-    click.echo("")
+    click.echo("DevOps system running\n")
 
 
 # -------------------------
@@ -67,16 +60,14 @@ def build():
     pass
 
 
-@build.command()
+@build.command(name="run")
 @click.argument("project")
-def run(project):
+def run_build(project):
     """Run build for a project"""
-
     event_bus = EventBus()
     db = Database()
 
     AlertService(event_bus)
-
     build_service = BuildService(event_bus, db)
 
     project_data = db.get_project(project)
@@ -90,25 +81,20 @@ def run(project):
 
     if os.path.exists(f"{project_path}/package.json"):
         command = ["npm", "run", "build"]
-
     elif os.path.exists(f"{project_path}/Makefile"):
         command = ["make"]
-
     elif os.path.exists(f"{project_path}/build.py"):
         command = ["python", "build.py"]
-
     else:
         command = ["echo", "No build system detected"]
 
     result = build_service.run_build(project_name, project_path, command)
 
-    click.echo("")
-    click.echo("BUILD RESULT")
+    click.echo("\nBUILD RESULT")
     click.echo("-------------")
     click.echo(f"Project  : {project}")
     click.echo(f"Status   : {result['status']}")
-    click.echo(f"Duration : {result['duration']}s")
-    click.echo("")
+    click.echo(f"Duration : {result['duration']}s\n")
 
     if result.get("stdout"):
         click.echo(result["stdout"])
@@ -120,7 +106,6 @@ def run(project):
 @build.command()
 def history():
     """Show build history"""
-
     db = Database()
     builds = db.get_builds()
 
@@ -128,14 +113,89 @@ def history():
         click.echo("No builds found.")
         return
 
-    click.echo("")
-    click.echo("BUILD HISTORY")
+    click.echo("\nBUILD HISTORY")
     click.echo("-------------")
 
     for b in builds:
         click.echo(f"{b[0]} | {b[1]} | {b[2]} | {b[3]}")
 
     click.echo("")
+
+
+@build.command(name="show-logs")
+@click.argument("project")
+@click.option("--last", is_flag=True, help="Show last build log")
+@click.option("--id", "build_id", help="Show log for specific build ID")
+def show_build_logs(project, last, build_id):
+    """Show build logs"""
+    db = Database()
+
+    if last:
+        build = db.get_last_build(project)
+        if not build:
+            click.echo("No builds found.")
+            return
+
+        click.echo(f"\nBUILD LOG (ID: {build[0]})")
+        click.echo("--------------------------")
+        click.echo(build[5] + "\n")
+        return
+
+    if build_id:
+        build = db.get_build_log(build_id)
+        if not build:
+            click.echo("Build not found.")
+            return
+
+        click.echo(f"\nBUILD LOG (ID: {build[0]})")
+        click.echo("--------------------------")
+        click.echo(build[3] + "\n")
+        return
+
+    builds = db.get_project_builds(project)
+
+    if not builds:
+        click.echo("No builds found.")
+        return
+
+    click.echo("\nPROJECT BUILDS")
+    click.echo("--------------------------")
+
+    for b in builds:
+        click.echo(f"ID:{b[0]} | Status:{b[2]} | Started:{b[3]}")
+
+    click.echo("")
+
+
+@build.command()
+@click.argument("project")
+def tail(project):
+    """Live stream build logs"""
+    db = Database()
+
+    click.echo(f"\nStreaming build logs for {project}")
+    click.echo("Press CTRL+C to stop\n")
+
+    last_length = 0
+
+    try:
+        while True:
+            build = db.get_last_build_log(project)
+
+            if not build:
+                time.sleep(1)
+                continue
+
+            log = build[1] or ""
+
+            if len(log) > last_length:
+                click.echo(log[last_length:], nl=False)
+                last_length = len(log)
+
+            time.sleep(1)
+
+    except KeyboardInterrupt:
+        click.echo("\nLog streaming stopped")
 
 
 # -------------------------
@@ -148,40 +208,32 @@ def deploy():
     pass
 
 
-@deploy.command()
+@deploy.command(name="run")
 @click.argument("project")
 @click.argument("environment")
-def run(project, environment):
-    """Deploy project to environment"""
-
+def run_deploy(project, environment):
+    """Deploy project"""
     event_bus = EventBus()
     db = Database()
 
     AlertService(event_bus)
-
     deploy_service = DeployService(event_bus, db)
 
-    click.echo("")
-    click.echo(f"Deploying {project} to {environment}")
-    click.echo("")
-
+    click.echo(f"\nDeploying {project} to {environment}\n")
     deploy_service.deploy(project, environment)
 
 
 @deploy.command()
 def history():
     """Show deployment history"""
-
     db = Database()
-
     deployments = db.get_deployments()
 
     if not deployments:
         click.echo("No deployments found.")
         return
 
-    click.echo("")
-    click.echo("DEPLOYMENT HISTORY")
+    click.echo("\nDEPLOYMENT HISTORY")
     click.echo("------------------")
 
     for d in deployments:
@@ -200,21 +252,17 @@ def logs():
     pass
 
 
-@logs.command()
-def show():
+@logs.command(name="show")
+def show_logs():
     """Show all logs"""
-
-    logger = LogService()
-    logger.show_logs()
+    LogService().show_logs()
 
 
-@logs.command()
+@logs.command(name="filter")
 @click.argument("level")
-def filter(level):
+def filter_logs(level):
     """Filter logs by level"""
-
-    logger = LogService()
-    logger.filter_logs(level)
+    LogService().filter_logs(level)
 
 
 # -------------------------
@@ -223,24 +271,21 @@ def filter(level):
 
 @cli.group()
 def project():
-    """Project management commands"""
+    """Project management"""
     pass
 
 
-@project.command()
-def list():
-    """List registered projects"""
-
+@project.command(name="list")
+def list_projects():
+    """List projects"""
     db = Database()
-
     projects = db.get_projects()
 
     if not projects:
         click.echo("No projects registered.")
         return
 
-    click.echo("")
-    click.echo("REGISTERED PROJECTS")
+    click.echo("\nREGISTERED PROJECTS")
     click.echo("-------------------")
 
     for p in projects:
@@ -253,8 +298,7 @@ def list():
 @click.argument("name")
 @click.argument("path")
 def add(name, path):
-    """Register a new project"""
-
+    """Add new project"""
     db = Database()
 
     if not os.path.exists(path):
@@ -262,108 +306,72 @@ def add(name, path):
         return
 
     db.add_project(name, path)
-
     click.echo(f"Project '{name}' added.")
 
 
 # -------------------------
-# RESET COMMAND
+# PIPELINE COMMANDS
+# -------------------------
+
+@cli.group()
+def pipeline():
+    """Pipeline commands"""
+    pass
+
+
+@pipeline.command()
+@click.argument("project")
+def create(project):
+    """Create pipeline"""
+    db = Database()
+
+    pipeline_id = db.create_pipeline(project, "default")
+    db.add_pipeline_step(pipeline_id, 1, "build", "")
+    db.add_pipeline_step(pipeline_id, 2, "deploy", "prod")
+
+    click.echo(f"Pipeline created for {project}")
+
+
+@pipeline.command()
+@click.argument("project")
+def run(project):
+    """Run pipeline"""
+    db = Database()
+    steps = db.get_pipeline_steps(project)
+
+    if not steps:
+        click.echo("No pipeline found.")
+        return
+
+    click.echo("\nRunning pipeline")
+    click.echo("----------------")
+
+    for order, step_type, value in steps:
+        click.echo(f"Step {order}: {step_type}")
+
+        if step_type == "build":
+            os.system(f"pipetui build run {project}")
+
+        elif step_type == "deploy":
+            os.system(f"pipetui deploy run {project} {value}")
+
+
+# -------------------------
+# RESET
 # -------------------------
 
 @cli.command()
 def reset():
-    """Clear build, deployment and alert history"""
-
+    """Clear all history"""
     db = Database()
-    cursor = db.conn.cursor()
 
-    cursor.execute("DELETE FROM builds")
-    cursor.execute("DELETE FROM deployments")
-    cursor.execute("DELETE FROM alerts")
-
-    db.conn.commit()
+    with db.conn:
+        db.conn.execute("DELETE FROM builds")
+        db.conn.execute("DELETE FROM deployments")
+        db.conn.execute("DELETE FROM alerts")
 
     click.echo("All build, deployment, and alert history cleared.")
 
-@build.command()
-@click.argument("project")
-@click.option("--last", is_flag=True, help="Show last build log")
-@click.option("--id", "build_id", help="Show log for specific build ID")
-def logs(project, last, build_id):
-    """Show build logs"""
 
-    db = Database()
-
-    if last:
-
-        build = db.get_last_build(project)
-
-        if not build:
-            click.echo("No builds found.")
-            return
-
-        click.echo("")
-        click.echo(f"BUILD LOG (ID: {build[0]})")
-        click.echo("--------------------------")
-        click.echo(build[5])
-        click.echo("")
-
-        return
-
-    if build_id:
-
-        build = db.get_build_log(build_id)
-
-        if not build:
-            click.echo("Build not found.")
-            return
-
-        click.echo("")
-        click.echo(f"BUILD LOG (ID: {build[0]})")
-        click.echo("--------------------------")
-        click.echo(build[3])
-        click.echo("")
-
-        return
-
-    builds = db.get_project_builds(project)
-
-    if not builds:
-        click.echo("No builds found.")
-        return
-
-    click.echo("")
-    click.echo("PROJECT BUILDS")
-    click.echo("--------------------------")
-
-    for b in builds:
-        click.echo(f"ID:{b[0]} | Status:{b[2]} | Started:{b[3]}")
-
-    click.echo("")
-
-@build.command()
-@click.argument("project")
-def tail(project):
-    """Live stream build logs"""
-    db = Database()
-
-    click.echo("")
-    click.echo(f"Streaming build logs for {project}")
-    click.echo("Press CTRL+C to stop")
-    click.echo("")
-    last_length = 0
-    try:
-        while True:
-            build = db.get_last_build_log(project)
-            if not build:
-                time.sleep(1)
-                continue
-            log = build[1] or ""
-            if len(log) > last_length:
-                new_part = log[last_length:]
-                click.echo(new_part, nl=False)
-                last_length = len(log)
-            time.sleep(1)
-    except KeyboardInterrupt:
-        click.echo("")
-        click.echo("Log streaming stopped")
+if __name__ == "__main__":
+    cli()

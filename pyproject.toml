@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "pipetui"
+version = "0.1.0"
+description = "PipeTUI DevOps CLI"
+dependencies = [
+    "click"
+]
+
+
+[project.scripts]
+pipetui = "cli.main:cli"
+
+[tool.setuptools.packages.find]
+include = [
+    "cli",
+    "core",
+    "services",
+    "storage",
+    "plugins",
+    "logs",
+    "utils"
+]

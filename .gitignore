@@ -1,10 +1,46 @@
-# Python cache
+# Python bytecode
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
 
-# Docker
-Dockerfile
-
-.env
+# Editable install metadata
 *.egg-info/
+.eggs/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Python build artifacts
+build/
+dist/
+
+# SQLite databases (runtime data)
+*.db
+
+# Logs
+logs/*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Testing / coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Python packaging cache
+pip-wheel-metadata/
+
+# Mypy / type checking
+.mypy_cache/
+
+# Ruff / lint cache
+.ruff_cache/
