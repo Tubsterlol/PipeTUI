@@ -8,7 +8,9 @@ name = "pipetui"
 version = "0.1.0"
 description = "PipeTUI DevOps CLI"
 dependencies = [
-    "click"
+    "click",
+    "sqlalchemy",
+    "alembic",
 ]
 
 
@@ -17,11 +19,11 @@ pipetui = "cli.main:cli"
 
 [tool.setuptools.packages.find]
 include = [
-    "cli",
-    "core",
-    "services",
-    "storage",
-    "plugins",
-    "logs",
-    "utils"
+    "cli*",
+    "core*",
+    "services*",
+    "storage*",
+    "plugins*",
+    "logs*",
+    "utils*"
 ]

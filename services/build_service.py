@@ -1,43 +1,105 @@
-import subprocess
-import time
-
+from storage.models import Build, Project
 
 class BuildService:
 
-    def __init__(self, event_bus, db):
-        self.event_bus = event_bus
-        self.db = db
+    def __init__(self, database):
+        self.database = database
 
-    def run_build(self, project_name, project_path, command):
+    def create_build(self, project):
 
-        build_id = self.db.create_build(project_name)
+        session = self.database.get_session()
 
-        start = time.time()
+        try:
+            project_exists = session.get(
+                Project,
+                project
+            )
 
-        process = subprocess.Popen(
-            command,
-            cwd=project_path,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True
-        )
+            if project_exists is None:
+                raise ValueError(
+                    f"Project '{project}' does not exist"
+                )
 
-        log = ""
+            build = Build(
+                project_name=project,
+                status="running"
+            )
 
-        for line in process.stdout:
-            log += line
-            print(line, end="")
+            session.add(build)
+            session.commit()
 
-        process.wait()
+            return build.id
 
-        duration = round(time.time() - start, 2)
+        except Exception:
+            session.rollback()
+            raise
 
-        status = "success" if process.returncode == 0 else "failed"
+        finally:
+            session.close()
 
-        self.db.finish_build(build_id, status, log)
+    def finish_build(self, build_id, status, log):
 
-        return {
-            "status": status,
-            "duration": duration,
-            "log": log
-        }
+        session = self.database.get_session()
+
+        try:
+            build = session.get(Build, build_id)
+
+            if build is None:
+                raise ValueError(
+                    f"Build {build_id} does not exist"
+                )
+
+            build.status = status
+            build.log = log
+
+            session.commit()
+
+        except Exception:
+            session.rollback()
+            raise
+
+        finally:
+            session.close()
+
+    def get_builds(self):
+
+        session = self.database.get_session()
+
+        try:
+            builds = (
+                session.query(Build)
+                .order_by(Build.id.desc())
+                .all()
+            )
+
+            return builds
+
+        finally:
+            session.close()
+
+    def get_build(self, build_id):
+
+        session = self.database.get_session()
+
+        try:
+            return session.get(Build, build_id)
+
+        finally:
+            session.close()
+
+    def get_project_builds(self, project):
+
+        session = self.database.get_session()
+
+        try:
+            builds = (
+                session.query(Build)
+                .filter(Build.project_name == project)
+                .order_by(Build.id.desc())
+                .all()
+            )
+
+            return builds
+
+        finally:
+            session.close()

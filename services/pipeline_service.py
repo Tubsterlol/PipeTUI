@@ -1,42 +1,131 @@
-import random
-from services.log_service import LogService
-from services.alert_service import AlertService
+from datetime import datetime
+
+from storage.models import Pipeline, PipelineStep, Project
+
 
 class PipelineService:
 
-    def __init__(self, event_bus, database):
+    def __init__(self, database, event_bus=None):
 
-        self.event_bus = event_bus
         self.database = database
-        self.logger = LogService()
-        self.alert_service = AlertService(event_bus)
+        self.event_bus = event_bus
 
-    def run_pipeline(self, project):
+    def create_pipeline(self, project, name):
 
-        print(f"Running pipeline for {project}\n")
+        session = self.database.get_session()
 
-        stages = ["Build", "Test", "Package", "Deploy"]
+        try:
+            project_exists = session.get(
+                Project,
+                project
+            )
 
-        results = {}
-
-        for stage in stages:
-
-            result = random.choice(["success", "failed"])
-
-            results[stage] = result
-
-            if result == "success":
-                print(f"{stage:10} ✓")
-                self.logger.write_log("info", f"{stage} succeeded for {project}")
-
-            else:
-                print(f"{stage:10} ✗")
-
-                self.alert_service.alert(
-                    "pipeline_failure",
-                    f"{stage} failed for {project}"
+            if project_exists is None:
+                raise ValueError(
+                    f"Project '{project}' does not exist"
                 )
 
-                break
+            pipeline = Pipeline(
+                project_name=project,
+                name=name,
+                created_at=datetime.now()
+            )
 
-        return results
+            session.add(pipeline)
+            session.commit()
+
+            return pipeline.id
+
+        except Exception:
+            session.rollback()
+            raise
+
+        finally:
+            session.close()
+
+    def add_step(
+        self,
+        pipeline_id,
+        step_order,
+        step_type,
+        step_value
+    ):
+
+        session = self.database.get_session()
+
+        try:
+            pipeline = session.get(
+                Pipeline,
+                pipeline_id
+            )
+
+            if pipeline is None:
+                raise ValueError(
+                    f"Pipeline {pipeline_id} does not exist"
+                )
+
+            step = PipelineStep(
+                pipeline_id=pipeline_id,
+                step_order=step_order,
+                step_type=step_type,
+                step_value=step_value
+            )
+
+            session.add(step)
+            session.commit()
+
+        except Exception:
+            session.rollback()
+            raise
+
+        finally:
+            session.close()
+
+    def get_pipeline(self, pipeline_id):
+
+        session = self.database.get_session()
+
+        try:
+            pipeline = session.get(
+                Pipeline,
+                pipeline_id
+            )
+
+            return pipeline
+
+        finally:
+            session.close()
+
+    def get_pipeline(self, pipeline_id):
+
+        session = self.database.get_session()
+
+        try:
+            pipeline = session.get(
+                Pipeline,
+                pipeline_id
+            )
+
+            if pipeline is None:
+                return None
+
+            steps = []
+
+            for step in pipeline.steps:
+
+                steps.append({
+                    "order": step.step_order,
+                    "type": step.step_type,
+                    "value": step.step_value
+                })
+
+            return {
+                "id": pipeline.id,
+                "name": pipeline.name,
+                "project": pipeline.project_name,
+                "created_at": pipeline.created_at,
+                "steps": steps
+            }
+
+        finally:
+            session.close() 
