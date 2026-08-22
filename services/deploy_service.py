@@ -14,8 +14,12 @@ class DeployService:
 
         print(f"Deploying {project} to {environment}")
 
+        project_data = self.database.get_project(project)
+        if project_data is None:
+            raise ValueError(f"Project '{project}' does not exist")
+
         if plugin:
-            result = plugin.deploy(project)
+            result = plugin.deploy(project, project_data["path"])
         else:
             result = random.choice(["success", "failed"])
 

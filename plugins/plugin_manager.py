@@ -13,5 +13,6 @@ class PluginManager:
             if file.endswith(".py") and file != "__init__.py":
                 module_name = f"plugins.{file[:-3]}"
                 module = importlib.import_module(module_name)
-                if hasattr(module, "Plugin"):
-                    self.plugins.append(module.Plugin())
+                plugin_class = getattr(module, "PluginImpl", None)
+                if plugin_class is not None:
+                    self.plugins.append(plugin_class())

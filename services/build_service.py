@@ -1,9 +1,38 @@
 from storage.models import Build, Project
+import subprocess
+import time
 
 class BuildService:
 
-    def __init__(self, database):
+    def __init__(self, database, event_bus=None):
         self.database = database
+        self.event_bus = event_bus
+
+    def run_build(self, project, project_path, command):
+        build_id = self.create_build(project)
+        started = time.monotonic()
+        try:
+            completed = subprocess.run(
+                command,
+                cwd=project_path,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            output = completed.stdout or ""
+            error = completed.stderr or ""
+            status = "success" if completed.returncode == 0 else "failed"
+            self.finish_build(build_id, status, output + error)
+            return {
+                "status": status,
+                "duration": round(time.monotonic() - started, 2),
+                "stdout": output,
+                "stderr": error,
+            }
+        except OSError as error:
+            message = str(error)
+            self.finish_build(build_id, "failed", message)
+            return {"status": "failed", "duration": round(time.monotonic() - started, 2), "stderr": message}
 
     def create_build(self, project):
 

@@ -68,7 +68,7 @@ def run_build(project):
     db = Database()
 
     AlertService(event_bus)
-    build_service = BuildService(event_bus, db)
+    build_service = BuildService(db, event_bus)
 
     project_data = db.get_project(project)
 
@@ -350,10 +350,9 @@ def run(project):
         click.echo(f"Step {order}: {step_type}")
 
         if step_type == "build":
-            os.system(f"pipetui build run {project}")
-
+            run_build.callback(project)
         elif step_type == "deploy":
-            os.system(f"pipetui deploy run {project} {value}")
+            run_deploy.callback(project, value)
 
 
 # -------------------------
@@ -365,10 +364,7 @@ def reset():
     """Clear all history"""
     db = Database()
 
-    with db.conn:
-        db.conn.execute("DELETE FROM builds")
-        db.conn.execute("DELETE FROM deployments")
-        db.conn.execute("DELETE FROM alerts")
+    db.reset_history()
 
     click.echo("All build, deployment, and alert history cleared.")
 

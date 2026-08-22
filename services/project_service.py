@@ -10,8 +10,8 @@ class ProjectService:
 
     def add_project(self, name, path):
 
-        if not os.path.exists(path):
-            raise ValueError("Project path does not exist")
+        if not os.path.isdir(path):
+            raise ValueError("Project path does not exist or is not a directory")
 
         session = self.database.get_session()
 

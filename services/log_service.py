@@ -20,11 +20,19 @@ class LogService:
 
     def show_logs(self):
 
+        if not os.path.exists(self.log_file):
+            print("No logs found.")
+            return
+
         with open(self.log_file, "r") as f:
             for line in f:
                 print(line.strip())
 
     def filter_logs(self, level):
+
+        if not os.path.exists(self.log_file):
+            print("No logs found.")
+            return
 
         with open(self.log_file, "r") as f:
             for line in f:

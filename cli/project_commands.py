@@ -38,8 +38,8 @@ def add(name, path):
 
     db = Database()
 
-    if not os.path.exists(path):
-        click.echo("Path does not exist.")
+    if not os.path.isdir(path):
+        click.echo("Project path does not exist or is not a directory.")
         return
 
     db.add_project(name, path)

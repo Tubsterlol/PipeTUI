@@ -1,246 +1,174 @@
-<div align="center">
-
-<pre>
-╭─╮╷╭─╮╭─╴╶┬╴╷ ╷╷
-├─╯│├─╯├╴  │ │ ││
-╵  ╵╵  ╰─╴ ╵ ╰─╯╵
-</pre>
-
-</div>
-
 # PipeTUI
 
-A lightweight, terminal-based DevOps dashboard and pipeline controller built with Python. PipeTUI provides a CLI tool for managing CI/CD pipelines with a real-time TUI dashboard for monitoring builds, deployments, alerts, and system health.
+PipeTUI is a local DevOps command-line tool for registering projects, running builds, executing simple pipelines, deploying applications, and inspecting the resulting history from a terminal.
 
-> ⚠️ **Linux-Based Only**: PipeTUI is designed and tested exclusively for Linux systems. macOS and Windows are not officially supported.
+It is primarily an educational project. Builds and deployments are recorded in a local SQLite database, while Docker deployment is available through the Docker plugin.
 
-## Table of Contents
+## What it provides
 
-- [Overview](#overview)
-  - [Core Capabilities](#core-capabilities)
-- [Features](#features)
-  - [CLI DevOps Controller](#cli-devops-controller)
-  - [Terminal Dashboard (TUI)](#terminal-dashboard-tui)
-  - [Database & History](#database--history)
-  - [Plugin System](#plugin-system)
-- [System Architecture](#system-architecture)
-- [Getting Started](#getting-started)
-  - [Installation](#installation)
-  - [Basic Usage](#basic-usage)
-- [Command Reference](#command-reference)
-- [Example Workflow](#example-workflow)
-- [Technologies Used](#technologies-used)
-- [Project Structure](#project-structure)
-- [About This Project](#about-this-project)
-- [License](#license)
+- Project registration and project information
+- Automatic build command detection for `package.json`, `Makefile`, and `build.py`
+- Build history, logs, and live log streaming
+- Simple build-and-deploy pipelines
+- Deployment history and Docker-backed deployment commands
+- Alerts and filtered application logs
+- A live Rich dashboard with CPU, memory, build, deployment, and alert panels
+- A plugin architecture for integrations such as Git and Docker
 
-## Overview
+## Requirements
 
-PipeTUI is designed as an educational DevOps platform that demonstrates how modern CI/CD tools work. It combines a command-line interface with a live terminal dashboard to give you complete visibility and control over your pipeline operations.
+- Python 3.8 or newer
+- Linux is the supported and tested platform
+- Docker is required only for Docker deployments
+- Node.js/npm, GNU Make, or Python may be required by the build system detected in a registered project
 
-### Core Capabilities
-
-- **Project Management** - Register and manage multiple projects
-- **Build Automation** - Trigger builds and track build history
-- **Deployment Control** - Deploy applications across different environments
-- **Real-Time Monitoring** - Live dashboard with system metrics and activity logs
-- **Alert System** - Track pipeline errors and system events
-- **Plugin Architecture** - Extensible integrations with Git and Docker
-
-> **Note:** Some pipeline operations are simulated to demonstrate DevOps concepts in an educational environment.
-
-## Features
-
-### CLI DevOps Controller
-Command-line interface for managing all pipeline operations:
-- Project registration and configuration
-- Build triggering and management
-- Deployment orchestration
-- System control and reset
-
-### Terminal Dashboard (TUI)
-Real-time monitoring dashboard displaying:
-- **System Health** - CPU and memory usage
-- **Build History** - Recent builds and results
-- **Deployment Status** - Deployment history and failures
-- **System Alerts** - Pipeline errors and warnings
-- **Activity Logs** - Recent DevOps operations
-
-### Database & History
-All actions are persistently stored in SQLite and displayed in real-time through the dashboard.
-
-### Plugin System
-Extensible architecture supporting:
-- Git operations (WIP)
-- Docker integrations
-
-## System Architecture
-
-PipeTUI is built with a layered architecture for clean separation of concerns:
-
-```
-CLI Layer
-    ↓
-Services Layer (Build, Deploy, Alert, Monitor)
-    ↓
-Plugin System (Git, Docker, etc.)
-    ↓
-Database Layer (SQLite)
-```
-
-- **CLI Layer** - Handles user commands via Click framework
-- **Services Layer** - Implements core business logic (builds, deployments, alerts, monitoring)
-- **Plugin System** - Dynamic integration point for external tools
-- **Database Layer** - Persistent storage using SQLite
-- **Dashboard Layer** - Real-time TUI built with Rich library
-
-## Getting Started
-
-### Installation
-
-Clone the repository and install dependencies:
+## Installation
 
 ```bash
 git clone <repository-url>
 cd PipeTUI
-pip install -r pyproject.toml
-pip install -e .  # Install pipetui command
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .
+python -m pip install rich psutil
 ```
 
-### Basic Usage
+The last command installs the dashboard dependencies. They are currently imported by the application but are not yet declared in `pyproject.toml`.
 
-#### 1. Register a Project
-```bash
-pipetui project add myapp /path/to/project
-```
+The editable install exposes the `pipetui` command:
 
-#### 2. Run a Build
-```bash
-pipetui build run myapp
-```
-
-#### 3. Deploy to an Environment
-```bash
-pipetui deploy run myapp dev
-```
-
-#### 4. Launch the Dashboard
-```bash
-pipetui dashboard
-```
-
-#### 5. View System Information
 ```bash
 pipetui --help
+pipetui --version
 ```
 
-#### 6. Reset System History
-```bash
-pipetui reset
-```
+## Quick start
 
-## Command Reference
-
-### Available Commands
+Register a project, run its build, and inspect the result:
 
 ```bash
-# Project Management
-pipetui project add <name> <path>           # Register a new project
-pipetui project list                        # List all projects
-pipetui project remove <name>               # Remove a project
-
-# Build Operations
-pipetui build run <project>                 # Trigger a build
-pipetui build list <project>                # List build history
-pipetui build status <project>              # Check build status
-
-# Pipeline Operations
-pipetui pipeline start <project>            # Start pipeline execution
-pipetui pipeline pause <project>            # Pause pipeline execution
-pipetui pipeline resume <project>           # Resume pipeline execution
-pipetui pipeline status <project>           # Check pipeline status
-pipetui pipeline logs <project>             # View pipeline logs
-
-# Deployment Operations
-pipetui deploy run <project> <env>          # Deploy to environment (dev/prod)
-pipetui deploy status <project>             # Check deployment status
-pipetui deploy rollback <project>           # Rollback deployment
-
-# Dashboard & System
-pipetui dashboard                           # Launch real-time monitoring dashboard
-pipetui --help                              # Display command help
-pipetui -v, --version                       # Show version information
-
-# System Management
-pipetui reset                                # Clear system history
-```
-
-### Man Pages
-
-For detailed command documentation, use the man pages:
-
-```bash
-man pipetui                                 # Main manual page
-```
-
-## Example Workflow
-
-```bash
-# 1. Add a project to the system
-pipetui project add myapp /path/to/project
-
-# 2. Start the pipeline
-pipetui pipeline start myapp
-
-# 3. Trigger a build
+pipetui project add myapp /path/to/myapp
+pipetui project list
+pipetui project info myapp
 pipetui build run myapp
+pipetui build history
+```
 
-# 4. Deploy to development environment
-pipetui deploy run myapp dev
+Create and run the default pipeline:
 
-# 5. Open the dashboard to monitor
+```bash
+pipetui pipeline create myapp
+pipetui pipeline run myapp
+```
+
+The default pipeline contains a build step followed by a deployment to `prod`.
+
+Launch the live dashboard in a separate terminal:
+
+```bash
 pipetui dashboard
 ```
 
-The dashboard will display:
-- System health metrics (CPU, memory)
-- Build history and status
-- Deployment records
-- System alerts and errors
-- Recent activity logs
+## Command reference
 
-## Technologies Used
+### System
 
-- **click** - CLI framework for command parsing
-- **rich** - Beautiful terminal user interface
-- **psutil** - System resource monitoring
-- **SQLite** - Lightweight database
-- **Python 3.8+** - Core language
-
-## Project Structure
-
-```
-PipeTUI/
-├── cli/                 # Command-line interface
-├── core/                # Core configuration and event systems
-├── services/            # Business logic (builds, deploys, monitoring)
-├── plugins/             # Plugin architecture and implementations
-├── storage/             # Database layer
-├── utils/               # Helper utilities and dashboard
-├── docs/                # Documentation
-└── Dockerfile           # Container configuration
+```text
+pipetui start                         Start the monitoring service
+pipetui status                        Show system status
+pipetui reset                         Clear build, deployment, and alert history
+pipetui dashboard                     Launch the live terminal dashboard
 ```
 
-## About This Project
+### Projects
 
-PipeTUI is an educational DevOps learning project that demonstrates core concepts:
+```text
+pipetui project add <name> <path>     Register a project directory
+pipetui project list                  List registered projects
+pipetui project info <name>           Show project, build, and deployment details
+```
 
-- How CI/CD pipelines coordinate builds and deployments
-- How DevOps dashboards provide real-time system visibility
-- How CLI tools manage infrastructure operations
-- How modular plugin architectures enable extensibility
+### Builds
 
-The project simplifies concepts from production tools like Docker, Kubernetes, and Jenkins into a comprehensible, interactive learning environment.
+```text
+pipetui build run <project>           Detect and run the project's build command
+pipetui build history                 Show build history
+pipetui build show-logs <project>     List logs for a project's builds
+pipetui build show-logs <project> --last
+                                      Show the latest build log
+pipetui build show-logs <project> --id <id>
+                                      Show a build log by ID
+pipetui build tail <project>          Stream the latest build log
+```
 
-# License
-This project is licensed under the [MIT License](LICENSE).
+Build detection checks for these files in order:
+
+| Detected file | Command |
+| --- | --- |
+| `package.json` | `npm run build` |
+| `Makefile` | `make` |
+| `build.py` | `python build.py` |
+
+If none is found, PipeTUI records a command that prints `No build system detected`.
+
+### Deployments and pipelines
+
+```text
+pipetui deploy run <project> <environment>
+pipetui deploy history
+pipetui docker deploy <project> <environment>
+
+pipetui pipeline create <project>     Create the default build/deploy pipeline
+pipetui pipeline run <project>        Run a project's pipeline
+```
+
+`docker deploy` uses the Docker plugin to build an image from the registered project directory and start a container. The Docker daemon and Docker CLI must be available for this command.
+
+### Alerts and logs
+
+```text
+pipetui alerts show                   Show recorded alerts
+pipetui alerts clear                  Delete recorded alerts
+pipetui logs show                     Show application logs
+pipetui logs filter <level>           Filter logs, e.g. INFO or ERROR
+```
+
+## Data and architecture
+
+By default, PipeTUI creates `devops.db` in the current working directory. The database stores projects, builds, deployments, alerts, pipelines, and pipeline steps.
+
+```text
+cli/       Click commands and command wiring
+core/      Configuration and event bus
+services/  Build, deployment, pipeline, monitoring, alert, and log logic
+plugins/   Git/Docker plugin implementations and plugin loading
+storage/   SQLAlchemy models and SQLite access
+utils/     Dashboard and shared helpers
+tests/     Service and model tests
+docs/      Manual page source
+```
+
+## Development
+
+Run the test suite with:
+
+```bash
+python -m pytest
+```
+
+Run the CLI directly from the repository when needed:
+
+```bash
+python -m cli.main --help
+```
+
+The project uses Click for the CLI, SQLAlchemy for persistence, Rich for terminal rendering, and psutil for system metrics.
+
+## Limitations
+
+PipeTUI is a local learning tool rather than a production CI/CD system. It does not provide remote workers, credentials management, deployment approvals, or distributed execution. Review commands carefully before running them against a real project or Docker host.
+
+## License
+
+PipeTUI is released under the [MIT License](LICENSE).
