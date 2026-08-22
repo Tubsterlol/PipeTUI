@@ -1,4 +1,5 @@
 import click
+import json
 import threading
 import os
 import time
@@ -10,6 +11,7 @@ from services.build_service import BuildService
 from storage.database import Database
 from services.deploy_service import DeployService
 from services.log_service import LogService
+from services.pipeline_executor import PipelineExecutor
 from core.config import Config
 
 
@@ -117,9 +119,12 @@ def history():
     click.echo("-------------")
 
     for b in builds:
-        click.echo(f"{b[0]} | {b[1]} | {b[2]} | {b[3]}")
+        click.echo(f"#{b[4]} | {b[0]} | {b[1]} | {b[2]} | {b[3]}")
 
     click.echo("")
+
+
+build.add_command(history, name="list")
 
 
 @build.command(name="show-logs")
@@ -265,6 +270,41 @@ def filter_logs(level):
     LogService().filter_logs(level)
 
 
+@logs.command(name="build")
+@click.argument("build_id", type=int)
+def show_build_log(build_id):
+    """Show structured output for a build."""
+    db = Database()
+    build = db.get_build_log(build_id)
+
+    if build is None:
+        click.echo(f"Build {build_id} not found.")
+        return
+
+    click.echo(f"Build #{build[0]}")
+    click.echo(f"Project: {build[1]}")
+    click.echo(f"Status: {build[2]}")
+    click.echo("─" * 40)
+
+    try:
+        payload = json.loads(build[3])
+    except (TypeError, json.JSONDecodeError):
+        payload = {"steps": [{"command": "build", "stdout": build[3], "stderr": ""}]}
+
+    for step in payload.get("steps", []):
+        click.echo(f"[{step.get('order', '?')}] {step.get('command', '')}")
+        click.echo(f"$ {step.get('command', '')}")
+        if step.get("stdout"):
+            click.echo(step["stdout"].rstrip())
+        if step.get("stderr"):
+            click.echo(step["stderr"].rstrip(), err=True)
+        click.echo(f"Exit code: {step.get('exit_code', 'n/a')}")
+        click.echo(f"Duration: {step.get('duration', 'n/a')}s")
+        click.echo("─" * 40)
+
+    click.echo(f"BUILD {build[2].upper()}")
+
+
 # -------------------------
 # PROJECT COMMANDS
 # -------------------------
@@ -301,8 +341,8 @@ def add(name, path):
     """Add new project"""
     db = Database()
 
-    if not os.path.exists(path):
-        click.echo("Path does not exist.")
+    if not os.path.isdir(path):
+        click.echo("Project path does not exist or is not a directory.")
         return
 
     db.add_project(name, path)
@@ -321,38 +361,76 @@ def pipeline():
 
 @pipeline.command()
 @click.argument("project")
-def create(project):
+@click.argument("name", required=False, default="default")
+@click.option(
+    "--step",
+    "steps",
+    multiple=True,
+    default=("pytest", "ruff check .", "ruff format --check ."),
+    help="Command to run in order; may be supplied more than once.",
+)
+def create(project, name, steps):
     """Create pipeline"""
     db = Database()
 
-    pipeline_id = db.create_pipeline(project, "default")
-    db.add_pipeline_step(pipeline_id, 1, "build", "")
-    db.add_pipeline_step(pipeline_id, 2, "deploy", "prod")
+    pipeline_id = db.create_pipeline(project, name)
+    for order, command in enumerate(steps, start=1):
+        db.add_pipeline_step(pipeline_id, order, "command", command)
 
-    click.echo(f"Pipeline created for {project}")
+    click.echo(f"Pipeline '{name}' created for {project}")
 
 
 @pipeline.command()
-@click.argument("project")
-def run(project):
+@click.argument("pipeline_ref")
+@click.option("--name", "pipeline_name", default=None, help="Pipeline name when passing a project.")
+def run(pipeline_ref, pipeline_name):
     """Run pipeline"""
     db = Database()
-    steps = db.get_pipeline_steps(project)
+    project_data = db.get_project(pipeline_ref)
+    if project_data is not None:
+        project = pipeline_ref
+        pipeline = db.get_pipeline_by_name(pipeline_name or "default", project)
+        if pipeline is None:
+            click.echo("Pipeline not found.")
+            return
+    else:
+        pipeline = db.get_pipeline_by_name(pipeline_ref)
+        if pipeline is None:
+            click.echo("Project or pipeline not found.")
+            return
+        project = pipeline["project"]
+
+    steps = db.get_pipeline_steps_for(project, pipeline["name"])
 
     if not steps:
         click.echo("No pipeline found.")
         return
 
-    click.echo("\nRunning pipeline")
-    click.echo("----------------")
+    click.echo(f"\nPipeline: {pipeline['name']}")
+    click.echo("")
 
-    for order, step_type, value in steps:
-        click.echo(f"Step {order}: {step_type}")
+    build_service = BuildService(db)
+    build_id = build_service.create_build(project)
+    executor = PipelineExecutor(project_data["path"] if project_data else db.get_project(project)["path"])
+    result = executor.execute(steps)
 
-        if step_type == "build":
-            run_build.callback(project)
-        elif step_type == "deploy":
-            run_deploy.callback(project, value)
+    for step in result["steps"]:
+        mark = "✓" if step["status"] == "success" else "✗"
+        click.echo(f"[{step['order']}/{len(steps)}] {step['command']}")
+        click.echo(f"      {mark} {step['status']}")
+
+    build_service.finish_build(
+        build_id,
+        result["status"],
+        json.dumps(result),
+        result["exit_code"],
+        result["duration"],
+    )
+
+    click.echo(f"\nPipeline {result['status']}")
+    click.echo(f"Build #{build_id}")
+    if result["status"] == "failed":
+        raise click.exceptions.Exit(1)
 
 
 # -------------------------

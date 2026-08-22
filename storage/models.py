@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -63,6 +63,10 @@ class Build(Base):
         Text,
         nullable=True
     )
+
+    exit_code: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    duration: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     project: Mapped["Project"] = relationship(
         back_populates="builds"

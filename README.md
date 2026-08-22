@@ -55,14 +55,25 @@ pipetui build run myapp
 pipetui build history
 ```
 
-Create and run the default pipeline:
+Create and run the default three-step pipeline (`pytest`, `ruff check .`, and `ruff format --check .`):
 
 ```bash
 pipetui pipeline create myapp
 pipetui pipeline run myapp
+# or: pipetui pipeline run default
 ```
 
-The default pipeline contains a build step followed by a deployment to `prod`.
+Every pipeline run creates a persistent build. Steps execute in order and stop at the first failure. Output, errors, exit codes, and durations are stored with the build.
+
+Create a named pipeline with custom commands:
+
+```bash
+pipetui pipeline create myapp my-pipeline \
+  --step "pytest" \
+  --step "ruff check ." \
+  --step "ruff format --check ."
+pipetui pipeline run my-pipeline
+```
 
 Launch the live dashboard in a separate terminal:
 
@@ -94,6 +105,7 @@ pipetui project info <name>           Show project, build, and deployment detail
 ```text
 pipetui build run <project>           Detect and run the project's build command
 pipetui build history                 Show build history
+pipetui build list                    Alias for build history
 pipetui build show-logs <project>     List logs for a project's builds
 pipetui build show-logs <project> --last
                                       Show the latest build log
@@ -132,6 +144,7 @@ pipetui alerts show                   Show recorded alerts
 pipetui alerts clear                  Delete recorded alerts
 pipetui logs show                     Show application logs
 pipetui logs filter <level>           Filter logs, e.g. INFO or ERROR
+pipetui logs build <id>               Show structured output for a build
 ```
 
 ## Data and architecture

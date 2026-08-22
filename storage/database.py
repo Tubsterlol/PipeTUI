@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
 
 from storage.models import (
@@ -23,6 +23,17 @@ class Database:
         )
 
         Base.metadata.create_all(self.engine)
+        self._ensure_schema()
+
+    def _ensure_schema(self):
+        if self.engine.dialect.name != "sqlite":
+            return
+        columns = {column["name"] for column in inspect(self.engine).get_columns("builds")}
+        with self.engine.begin() as connection:
+            if "exit_code" not in columns:
+                connection.exec_driver_sql("ALTER TABLE builds ADD COLUMN exit_code INTEGER")
+            if "duration" not in columns:
+                connection.exec_driver_sql("ALTER TABLE builds ADD COLUMN duration FLOAT")
 
     def get_session(self):
         return self.Session()
@@ -50,7 +61,8 @@ class Database:
         with self.get_session() as session:
             builds = session.query(Build).order_by(Build.id.desc()).all()
             return [
-                (b.project_name, b.status, b.started_at, b.finished_at, b.id, b.log)
+                (b.project_name, b.status, b.started_at, b.finished_at, b.id, b.log,
+                 b.exit_code, b.duration)
                 for b in builds
             ]
 
@@ -63,7 +75,8 @@ class Database:
                 .all()
             )
             return [
-                (b.id, b.project_name, b.status, b.started_at, b.finished_at, b.log)
+                (b.id, b.project_name, b.status, b.started_at, b.finished_at, b.log,
+                 b.exit_code, b.duration)
                 for b in builds
             ]
 
@@ -80,7 +93,8 @@ class Database:
             b = session.get(Build, int(build_id))
             if b is None:
                 return None
-            return (b.id, b.project_name, b.status, b.log or "", b.started_at, b.finished_at)
+            return (b.id, b.project_name, b.status, b.log or "", b.started_at,
+                    b.finished_at, b.exit_code, b.duration)
 
     def get_last_build_log(self, project):
         build = self.get_last_build(project)
@@ -143,15 +157,28 @@ class Database:
             session.commit()
 
     def get_pipeline_steps(self, project):
+        return self.get_pipeline_steps_for(project)
+
+    def get_pipeline_steps_for(self, project, pipeline_name=None):
         with self.get_session() as session:
-            rows = (
+            query = (
                 session.query(PipelineStep.step_order, PipelineStep.step_type, PipelineStep.step_value)
                 .join(Pipeline, Pipeline.id == PipelineStep.pipeline_id)
                 .filter(Pipeline.project_name == project)
-                .order_by(PipelineStep.step_order)
-                .all()
             )
-            return list(rows)
+            if pipeline_name is not None:
+                query = query.filter(Pipeline.name == pipeline_name)
+            return list(query.order_by(PipelineStep.step_order).all())
+
+    def get_pipeline_by_name(self, name, project=None):
+        with self.get_session() as session:
+            query = session.query(Pipeline).filter(Pipeline.name == name)
+            if project is not None:
+                query = query.filter(Pipeline.project_name == project)
+            pipeline = query.order_by(Pipeline.id.desc()).first()
+            if pipeline is None:
+                return None
+            return {"id": pipeline.id, "name": pipeline.name, "project": pipeline.project_name}
 
     def reset_history(self):
         with self.get_session() as session:
