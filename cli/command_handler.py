@@ -12,6 +12,7 @@ from storage.database import Database
 from services.deploy_service import DeployService
 from services.log_service import LogService
 from services.pipeline_executor import PipelineExecutor
+from services.pipeline_service import PipelineService
 from core.config import Config
 
 
@@ -409,26 +410,15 @@ def run(pipeline_ref, pipeline_name):
     click.echo(f"\nPipeline: {pipeline['name']}")
     click.echo("")
 
-    build_service = BuildService(db)
-    build_id = build_service.create_build(project)
-    executor = PipelineExecutor(project_data["path"] if project_data else db.get_project(project)["path"])
-    result = executor.execute(steps)
+    result = PipelineService(db).run_pipeline(pipeline["id"])
 
     for step in result["steps"]:
         mark = "✓" if step["status"] == "success" else "✗"
         click.echo(f"[{step['order']}/{len(steps)}] {step['command']}")
         click.echo(f"      {mark} {step['status']}")
 
-    build_service.finish_build(
-        build_id,
-        result["status"],
-        json.dumps(result),
-        result["exit_code"],
-        result["duration"],
-    )
-
     click.echo(f"\nPipeline {result['status']}")
-    click.echo(f"Build #{build_id}")
+    click.echo(f"Build #{result['build_id']}")
     if result["status"] == "failed":
         raise click.exceptions.Exit(1)
 

@@ -11,170 +11,96 @@ class Base(DeclarativeBase):
 class Project(Base):
     __tablename__ = "projects"
 
-    name: Mapped[str] = mapped_column(
-        String(255),
-        primary_key=True
-    )
+    name: Mapped[str] = mapped_column(String(255), primary_key=True)
 
-    path: Mapped[str] = mapped_column(
-        String(1024)
-    )
+    path: Mapped[str] = mapped_column(String(1024))
 
-    builds: Mapped[list["Build"]] = relationship(
-        back_populates="project"
-    )
+    builds: Mapped[list["Build"]] = relationship(back_populates="project")
 
-    pipelines: Mapped[list["Pipeline"]] = relationship(
-        back_populates="project"
-    )
+    pipelines: Mapped[list["Pipeline"]] = relationship(back_populates="project")
 
-    deployments: Mapped[list["Deployment"]] = relationship(
-        back_populates="project"
-    )
+    deployments: Mapped[list["Deployment"]] = relationship(back_populates="project")
 
 
 class Build(Base):
     __tablename__ = "builds"
 
-    id: Mapped[int] = mapped_column(
-        Integer,
-        primary_key=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    project_name: Mapped[str] = mapped_column(
-        ForeignKey("projects.name")
-    )
+    project_name: Mapped[str] = mapped_column(ForeignKey("projects.name"))
 
-    status: Mapped[str] = mapped_column(
-        String(50)
-    )
+    status: Mapped[str] = mapped_column(String(50))
 
-    started_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        server_default=func.now()
-    )
+    started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
-    finished_at: Mapped[datetime | None] = mapped_column(
-        DateTime,
-        nullable=True
-    )
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
-    log: Mapped[str | None] = mapped_column(
-        Text,
-        nullable=True
-    )
+    log: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     exit_code: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     duration: Mapped[float | None] = mapped_column(Float, nullable=True)
 
-    project: Mapped["Project"] = relationship(
-        back_populates="builds"
-    )
+    project: Mapped["Project"] = relationship(back_populates="builds")
 
 
 class Deployment(Base):
     __tablename__ = "deployments"
 
-    id: Mapped[int] = mapped_column(
-        Integer,
-        primary_key=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    project_name: Mapped[str] = mapped_column(
-        ForeignKey("projects.name")
-    )
+    project_name: Mapped[str] = mapped_column(ForeignKey("projects.name"))
 
-    environment: Mapped[str] = mapped_column(
-        String(100)
-    )
+    environment: Mapped[str] = mapped_column(String(100))
 
-    status: Mapped[str] = mapped_column(
-        String(50)
-    )
+    status: Mapped[str] = mapped_column(String(50))
 
-    project: Mapped["Project"] = relationship(
-        back_populates="deployments"
-    )
+    project: Mapped["Project"] = relationship(back_populates="deployments")
 
 
 class Alert(Base):
     __tablename__ = "alerts"
 
-    id: Mapped[int] = mapped_column(
-        Integer,
-        primary_key=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    type: Mapped[str] = mapped_column(
-        String(100)
-    )
+    type: Mapped[str] = mapped_column(String(100))
 
-    message: Mapped[str] = mapped_column(
-        Text
-    )
+    message: Mapped[str] = mapped_column(Text)
 
-    timestamp: Mapped[datetime] = mapped_column(
-        DateTime,
-        server_default=func.now()
-    )
+    timestamp: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
 class Pipeline(Base):
     __tablename__ = "pipelines"
 
-    id: Mapped[int] = mapped_column(
-        Integer,
-        primary_key=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    project_name: Mapped[str] = mapped_column(
-        ForeignKey("projects.name")
-    )
+    project_name: Mapped[str] = mapped_column(ForeignKey("projects.name"))
 
-    name: Mapped[str] = mapped_column(
-        String(255)
-    )
+    name: Mapped[str] = mapped_column(String(255))
 
-    created_at: Mapped[datetime] = mapped_column(
-        DateTime,
-        server_default=func.now()
-    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
-    project: Mapped["Project"] = relationship(
-        back_populates="pipelines"
-    )
+    project: Mapped["Project"] = relationship(back_populates="pipelines")
 
     steps: Mapped[list["PipelineStep"]] = relationship(
         back_populates="pipeline",
-        order_by="PipelineStep.step_order"
+        order_by="PipelineStep.step_order",
+        cascade="all, delete-orphan"
     )
 
 
 class PipelineStep(Base):
     __tablename__ = "pipeline_steps"
 
-    id: Mapped[int] = mapped_column(
-        Integer,
-        primary_key=True
-    )
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    pipeline_id: Mapped[int] = mapped_column(
-        ForeignKey("pipelines.id")
-    )
+    pipeline_id: Mapped[int] = mapped_column(ForeignKey("pipelines.id"))
 
-    step_order: Mapped[int] = mapped_column(
-        Integer
-    )
+    step_order: Mapped[int] = mapped_column(Integer)
 
-    step_type: Mapped[str] = mapped_column(
-        String(100)
-    )
+    step_type: Mapped[str] = mapped_column(String(100))
 
-    step_value: Mapped[str] = mapped_column(
-        Text
-    )
+    step_value: Mapped[str] = mapped_column(Text)
 
-    pipeline: Mapped["Pipeline"] = relationship(
-        back_populates="steps"
-    )
+    pipeline: Mapped["Pipeline"] = relationship(back_populates="steps")

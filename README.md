@@ -178,6 +178,16 @@ python -m cli.main --help
 
 The project uses Click for the CLI, SQLAlchemy for persistence, Rich for terminal rendering, and psutil for system metrics.
 
+## API
+
+PipeTUI also includes a FastAPI application for projects, pipelines, and builds:
+
+```bash
+uvicorn api.main:app --reload
+```
+
+Available endpoints include `GET /health`, project creation/listing, pipeline creation and inspection, pipeline execution at `POST /pipelines/{id}/run`, and build listing/details. Pipeline execution uses the same service layer as the CLI and persists its result as a build.
+
 ## Limitations
 
 PipeTUI is a local learning tool rather than a production CI/CD system. It does not provide remote workers, credentials management, deployment approvals, or distributed execution. Review commands carefully before running them against a real project or Docker host.

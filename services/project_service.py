@@ -1,6 +1,13 @@
 import os
+from dataclasses import dataclass
 
 from storage.models import Project
+
+
+@dataclass(frozen=True)
+class ProjectRecord:
+    name: str
+    path: str
 
 
 class ProjectService:
@@ -23,6 +30,7 @@ class ProjectService:
 
             session.add(project)
             session.commit()
+            return ProjectRecord(name=project.name, path=project.path)
 
         except Exception:
             session.rollback()
@@ -36,9 +44,10 @@ class ProjectService:
         session = self.database.get_session()
 
         try:
-            projects = session.query(Project).all()
-
-            return projects
+            return [
+                ProjectRecord(name=project.name, path=project.path)
+                for project in session.query(Project).order_by(Project.name).all()
+            ]
 
         finally:
             session.close()
@@ -50,10 +59,17 @@ class ProjectService:
         try:
             project = session.get(Project, name)
 
-            if project:
-                return project.path
+            return project.path if project else None
 
-            return None
+        finally:
+            session.close()
 
+    def get_project(self, name):
+        session = self.database.get_session()
+        try:
+            project = session.get(Project, name)
+            if project is None:
+                return None
+            return ProjectRecord(name=project.name, path=project.path)
         finally:
             session.close()
