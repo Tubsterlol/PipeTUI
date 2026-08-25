@@ -27,8 +27,10 @@ It is primarily an educational project. Builds and deployments are recorded in a
 ```bash
 git clone <repository-url>
 cd PipeTUI
+# Optional
 python -m venv .venv
 source .venv/bin/activate
+#
 python -m pip install --upgrade pip
 python -m pip install -e .
 ```
