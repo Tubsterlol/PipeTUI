@@ -11,7 +11,6 @@ from services.build_service import BuildService
 from storage.database import Database
 from services.deploy_service import DeployService
 from services.log_service import LogService
-from services.pipeline_executor import PipelineExecutor
 from services.pipeline_service import PipelineService
 from core.config import Config
 

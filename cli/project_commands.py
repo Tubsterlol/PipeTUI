@@ -1,5 +1,4 @@
 import click
-from datetime import datetime
 from storage.database import Database
 
 
