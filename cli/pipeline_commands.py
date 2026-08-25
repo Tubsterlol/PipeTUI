@@ -3,6 +3,7 @@ from services.pipeline_service import PipelineService
 from storage.database import Database
 from core.event_bus import EventBus
 
+
 @click.group()
 def pipeline():
     pass
@@ -11,7 +12,6 @@ def pipeline():
 @pipeline.command()
 @click.argument("project")
 def run(project):
-
     event_bus = EventBus()
     database = Database()
 

@@ -15,11 +15,13 @@ Footer {
 }
 
 #left {
-    width: 32;
+    width: 30%;
+    min-width: 24;
 }
 
 #right {
-    width: 1fr;
+    width: 70%;
+    min-width: 40;
 }
 
 .panel {
@@ -50,35 +52,60 @@ Footer {
 
 #bottom-panels {
     height: 1fr;
+    min-height: 8;
 }
 
-#status-panel {
+#details-panel,
+#activity-panel {
     width: 1fr;
 }
 
 #activity-panel {
-    width: 1fr;
     margin-right: 0;
 }
 
 #projects,
-#pipelines {
+#pipelines,
+#builds {
     height: 1fr;
 }
 
-#projects > ListItem,
-#pipelines > ListItem {
+#projects > .data-row,
+#pipelines > .data-row,
+#builds > .data-row {
     padding: 0 1;
 }
 
 #projects > ListItem.-highlight,
-#pipelines > ListItem.-highlight {
+#pipelines > ListItem.-highlight,
+#builds > ListItem.-highlight {
     background: $accent;
     color: $text;
 }
 
-#builds,
-#status,
+#builds > ListItem.success {
+    color: $success;
+}
+
+#builds > ListItem.failed {
+    color: $error;
+}
+
+#details,
 #activity {
     padding: 1;
+}
+
+#activity {
+    height: 1fr;
+    overflow-y: auto;
+}
+
+#details {
+    height: 1fr;
+    overflow-y: auto;
+}
+
+ListView:focus {
+    border: solid $accent;
 }

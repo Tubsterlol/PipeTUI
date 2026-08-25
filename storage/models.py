@@ -86,7 +86,7 @@ class Pipeline(Base):
     steps: Mapped[list["PipelineStep"]] = relationship(
         back_populates="pipeline",
         order_by="PipelineStep.step_order",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
 
 

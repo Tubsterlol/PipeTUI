@@ -1,8 +1,8 @@
 import os
 from datetime import datetime
 
-class LogService:
 
+class LogService:
     def __init__(self):
         self.log_file = "logs/system.log"
 
@@ -10,7 +10,6 @@ class LogService:
             os.makedirs("logs")
 
     def write_log(self, level, message):
-
         timestamp = datetime.now()
 
         log = f"[{timestamp}] [{level.upper()}] {message}\n"
@@ -19,7 +18,6 @@ class LogService:
             f.write(log)
 
     def show_logs(self):
-
         if not os.path.exists(self.log_file):
             print("No logs found.")
             return
@@ -29,7 +27,6 @@ class LogService:
                 print(line.strip())
 
     def filter_logs(self, level):
-
         if not os.path.exists(self.log_file):
             print("No logs found.")
             return

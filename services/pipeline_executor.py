@@ -19,9 +19,13 @@ class PipelineExecutor:
             step_started = time.monotonic()
             if step_type != "command":
                 result = {
-                    "order": order, "command": command, "status": "failed",
-                    "stdout": "", "stderr": f"Unsupported step type: {step_type}",
-                    "exit_code": 2, "duration": 0.0,
+                    "order": order,
+                    "command": command,
+                    "status": "failed",
+                    "stdout": "",
+                    "stderr": f"Unsupported step type: {step_type}",
+                    "exit_code": 2,
+                    "duration": 0.0,
                 }
             else:
                 try:
@@ -45,8 +49,12 @@ class PipelineExecutor:
                     }
                 except (OSError, ValueError) as error:
                     result = {
-                        "order": order, "command": command, "status": "failed",
-                        "stdout": "", "stderr": str(error), "exit_code": 1,
+                        "order": order,
+                        "command": command,
+                        "status": "failed",
+                        "stdout": "",
+                        "stderr": str(error),
+                        "exit_code": 1,
                     }
 
             result["duration"] = round(time.monotonic() - step_started, 2)

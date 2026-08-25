@@ -159,6 +159,9 @@ class BuildService:
         finally:
             session.close()
 
+    def get_build_log(self, build_id):
+        return self.database.get_build_log(build_id)
+
     def get_project_builds(self, project):
         session = self.database.get_session()
 

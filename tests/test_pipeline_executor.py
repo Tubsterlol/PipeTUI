@@ -9,10 +9,12 @@ from storage.models import Project
 def test_executor_runs_in_order_and_captures_output(tmp_path):
     executor = PipelineExecutor(str(tmp_path))
 
-    result = executor.execute([
-        (1, "command", "python -c \"print('first')\""),
-        (2, "command", "python -c \"print('second')\""),
-    ])
+    result = executor.execute(
+        [
+            (1, "command", "python -c \"print('first')\""),
+            (2, "command", "python -c \"print('second')\""),
+        ]
+    )
 
     assert result["status"] == "success"
     assert [step["order"] for step in result["steps"]] == [1, 2]
@@ -23,10 +25,12 @@ def test_executor_runs_in_order_and_captures_output(tmp_path):
 def test_executor_stops_after_failure(tmp_path):
     executor = PipelineExecutor(str(tmp_path))
 
-    result = executor.execute([
-        (1, "command", "python -c \"import sys; sys.exit(7)\""),
-        (2, "command", "python -c \"print('must not run')\""),
-    ])
+    result = executor.execute(
+        [
+            (1, "command", 'python -c "import sys; sys.exit(7)"'),
+            (2, "command", "python -c \"print('must not run')\""),
+        ]
+    )
 
     assert result["status"] == "failed"
     assert result["exit_code"] == 7
@@ -42,9 +46,11 @@ def test_pipeline_build_persists_structured_result(tmp_path):
 
     build_service = BuildService(database)
     build_id = build_service.create_build("test-project")
-    result = PipelineExecutor(str(tmp_path)).execute([
-        (1, "command", "python -c \"print('stored')\""),
-    ])
+    result = PipelineExecutor(str(tmp_path)).execute(
+        [
+            (1, "command", "python -c \"print('stored')\""),
+        ]
+    )
     build_service.finish_build(
         build_id,
         result["status"],

@@ -2,16 +2,18 @@ import random
 from services.log_service import LogService
 from services.alert_service import AlertService
 
-class DeployService:
 
+class DeployService:
     def __init__(self, event_bus, database):
         self.event_bus = event_bus
         self.database = database
         self.logger = LogService()
-        self.alert_service = AlertService(event_bus)
+        self.alert_service = AlertService(event_bus, database)
+
+    def get_deployments(self):
+        return self.database.get_deployments()
 
     def deploy(self, project, environment, plugin=None):
-
         print(f"Deploying {project} to {environment}")
 
         project_data = self.database.get_project(project)
@@ -31,6 +33,5 @@ class DeployService:
             self.logger.write_log("info", f"Deployment success for {project}")
         else:
             self.alert_service.alert(
-                "deploy_failure",
-                f"Deployment failed for {project}"
+                "deploy_failure", f"Deployment failed for {project}"
             )

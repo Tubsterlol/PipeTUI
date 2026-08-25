@@ -11,8 +11,6 @@ dependencies = [
     "click",
     "sqlalchemy",
     "alembic",
-    "fastapi",
-    "uvicorn",
     "textual",
 ]
 
@@ -27,7 +25,6 @@ include = [
     "services*",
     "storage*",
     "plugins*",
-    "pipetui_api*",
     "logs*",
     "utils*",
     "tui*",

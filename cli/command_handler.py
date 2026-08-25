@@ -25,14 +25,15 @@ def cli(ctx):
     """PipeTUI DevOps CLI"""
 
     if ctx.invoked_subcommand is None:
-        from tui.screens.main import start_tui
+        from tui.screens.main import PipeTUIApp
 
-        start_tui()
+        PipeTUIApp().run()
 
 
 # -------------------------
 # SYSTEM COMMANDS
 # -------------------------
+
 
 @cli.command()
 def start():
@@ -63,6 +64,7 @@ def status():
 # -------------------------
 # BUILD COMMANDS
 # -------------------------
+
 
 @cli.group()
 def build():
@@ -215,6 +217,7 @@ def tail(project):
 # DEPLOY COMMANDS
 # -------------------------
 
+
 @cli.group()
 def deploy():
     """Deployment commands"""
@@ -258,6 +261,7 @@ def history():
 # -------------------------
 # LOG COMMANDS
 # -------------------------
+
 
 @cli.group()
 def logs():
@@ -317,6 +321,7 @@ def show_build_log(build_id):
 # PROJECT COMMANDS
 # -------------------------
 
+
 @cli.group()
 def project():
     """Project management"""
@@ -361,6 +366,7 @@ def add(name, path):
 # PIPELINE COMMANDS
 # -------------------------
 
+
 @cli.group()
 def pipeline():
     """Pipeline commands"""
@@ -390,7 +396,12 @@ def create(project, name, steps):
 
 @pipeline.command()
 @click.argument("pipeline_ref")
-@click.option("--name", "pipeline_name", default=None, help="Pipeline name when passing a project.")
+@click.option(
+    "--name",
+    "pipeline_name",
+    default=None,
+    help="Pipeline name when passing a project.",
+)
 def run(pipeline_ref, pipeline_name):
     """Run pipeline"""
     db = Database()
@@ -434,6 +445,7 @@ def run(pipeline_ref, pipeline_name):
 # RESET
 # -------------------------
 
+
 @cli.command()
 def reset():
     """Clear all history"""
@@ -447,6 +459,6 @@ def reset():
 @cli.command()
 def tui():
     """Launch the PipeTUI interface."""
-    from tui.app import PipeTUIApp
+    from tui.screens.main import PipeTUIApp
 
     PipeTUIApp().run()

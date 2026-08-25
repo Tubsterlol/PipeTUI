@@ -14,7 +14,6 @@ def docker():
 @click.argument("project")
 @click.argument("environment")
 def deploy(project, environment):
-
     plugin = PluginImpl()
 
     event_bus = EventBus()
