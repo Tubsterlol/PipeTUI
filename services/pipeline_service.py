@@ -99,7 +99,7 @@ class PipelineService:
             (step["order"], step["type"], step["value"]) for step in pipeline["steps"]
         ]
         build_service = BuildService(self.database, self.event_bus)
-        build_id = build_service.create_build(project["name"])
+        build_id = build_service.create_build(project["name"], pipeline["id"])
         result = PipelineExecutor(project["path"]).execute(steps)
         build_service.finish_build(
             build_id,

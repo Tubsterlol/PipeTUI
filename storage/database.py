@@ -44,6 +44,10 @@ class Database:
                 connection.exec_driver_sql(
                     "ALTER TABLE builds ADD COLUMN duration FLOAT"
                 )
+            if "pipeline_id" not in columns:
+                connection.exec_driver_sql(
+                    "ALTER TABLE builds ADD COLUMN pipeline_id INTEGER"
+                )
 
     def get_session(self):
         return self.Session()

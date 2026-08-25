@@ -17,6 +17,8 @@ class BuildRecord:
     log: str | None
     exit_code: int | None
     duration: float | None
+    pipeline_id: int | None = None
+    pipeline_name: str | None = None
 
     @property
     def project_name(self):
@@ -85,7 +87,7 @@ class BuildService:
                 "stderr": message,
             }
 
-    def create_build(self, project_name):
+    def create_build(self, project_name, pipeline_id=None):
         session = self.database.get_session()
 
         try:
@@ -96,6 +98,7 @@ class BuildService:
 
             build = Build(
                 project_name=project_name,
+                pipeline_id=pipeline_id,
                 status="running",
                 started_at=datetime.now(),
             )
@@ -189,4 +192,6 @@ class BuildService:
             log=build.log,
             exit_code=build.exit_code,
             duration=build.duration,
+            pipeline_id=build.pipeline_id,
+            pipeline_name=build.pipeline.name if build.pipeline else None,
         )

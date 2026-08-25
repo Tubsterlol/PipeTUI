@@ -29,6 +29,10 @@ class Build(Base):
 
     project_name: Mapped[str] = mapped_column(ForeignKey("projects.name"))
 
+    pipeline_id: Mapped[int | None] = mapped_column(
+        ForeignKey("pipelines.id"), nullable=True
+    )
+
     status: Mapped[str] = mapped_column(String(50))
 
     started_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
@@ -42,6 +46,8 @@ class Build(Base):
     duration: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     project: Mapped["Project"] = relationship(back_populates="builds")
+
+    pipeline: Mapped["Pipeline | None"] = relationship(back_populates="builds")
 
 
 class Deployment(Base):
@@ -82,6 +88,8 @@ class Pipeline(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
     project: Mapped["Project"] = relationship(back_populates="pipelines")
+
+    builds: Mapped[list["Build"]] = relationship(back_populates="pipeline")
 
     steps: Mapped[list["PipelineStep"]] = relationship(
         back_populates="pipeline",
