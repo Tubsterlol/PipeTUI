@@ -59,6 +59,58 @@ class PipelineService:
         finally:
             session.close()
 
+    def update_pipeline(self, pipeline_id, name):
+        session = self.database.get_session()
+        try:
+            pipeline = session.get(Pipeline, pipeline_id)
+            if pipeline is None:
+                raise ValueError(f"Pipeline {pipeline_id} does not exist")
+            pipeline.name = name
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def update_step(self, step_id, step_value):
+        session = self.database.get_session()
+        try:
+            step = session.get(PipelineStep, step_id)
+            if step is None:
+                raise ValueError(f"Pipeline step {step_id} does not exist")
+            step.step_value = step_value
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def delete_step(self, step_id):
+        session = self.database.get_session()
+        try:
+            step = session.get(PipelineStep, step_id)
+            if step is None:
+                raise ValueError(f"Pipeline step {step_id} does not exist")
+            pipeline_id = step.pipeline_id
+            session.delete(step)
+            session.flush()
+            remaining = (
+                session.query(PipelineStep)
+                .filter(PipelineStep.pipeline_id == pipeline_id)
+                .order_by(PipelineStep.step_order)
+                .all()
+            )
+            for order, remaining_step in enumerate(remaining, start=1):
+                remaining_step.step_order = order
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
     def get_pipeline(self, pipeline_id):
         session = self.database.get_session()
         try:

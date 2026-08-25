@@ -41,7 +41,7 @@ def test_pipeline_relationship():
             project=project,
         )
 
-        step = PipelineStep(
+        PipelineStep(
             step_order=1,
             step_type="command",
             step_value="pytest",

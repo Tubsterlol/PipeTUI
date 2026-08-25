@@ -47,3 +47,15 @@ def test_get_project_path(tmp_path):
     result = service.get_project_path("test-project")
 
     assert result == str(project_path)
+
+
+def test_delete_project(tmp_path):
+    database = DatabaseForTest()
+    service = ProjectService(database)
+    project_path = tmp_path / "project"
+    project_path.mkdir()
+
+    service.add_project("test-project", str(project_path))
+    service.delete_project("test-project")
+
+    assert service.get_project("test-project") is None

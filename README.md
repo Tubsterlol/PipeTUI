@@ -12,7 +12,7 @@ It is primarily an educational project. Builds and deployments are recorded in a
 - Simple build-and-deploy pipelines
 - Deployment history and Docker-backed deployment commands
 - Alerts and filtered application logs
-- A live Rich dashboard with CPU, memory, build, deployment, and alert panels
+- A read-only Rich dashboard for projects, pipelines, builds, and activity
 - A plugin architecture for integrations such as Git and Docker
 
 ## Requirements
@@ -31,10 +31,9 @@ python -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install -e .
-python -m pip install rich psutil
 ```
 
-The last command installs the dashboard dependencies. They are currently imported by the application but are not yet declared in `pyproject.toml`.
+All runtime dependencies are installed by the editable install.
 
 The editable install exposes the `pipetui` command:
 
@@ -43,43 +42,49 @@ pipetui --help
 pipetui --version
 ```
 
-## Quick start
+## Example workflow
 
-Register a project, run its build, and inspect the result:
+PipeTUI keeps mutations in the CLI. The Rich TUI is an observation dashboard and can run in a separate terminal.
+
+Register a project and inspect the project list:
 
 ```bash
-pipetui project add myapp /path/to/myapp
+pipetui project add my-api /path/to/my-api
 pipetui project list
-pipetui project info myapp
-pipetui build run myapp
-pipetui build history
 ```
 
-Create and run the default three-step pipeline (`pytest`, `ruff check .`, and `ruff format --check .`):
+Create an empty pipeline, then add its steps in order:
 
 ```bash
-pipetui pipeline create myapp
-pipetui pipeline run myapp
-# or: pipetui pipeline run default
+pipetui pipeline create my-api ci
+pipetui step add my-api ci 1 "pytest"
+pipetui step add my-api ci 2 "ruff check ."
+pipetui step add my-api ci 3 "ruff format --check ."
+pipetui step list my-api ci
 ```
 
-Every pipeline run creates a persistent build. Steps execute in order and stop at the first failure. Output, errors, exit codes, and durations are stored with the build.
-
-Create a named pipeline with custom commands:
+Edit or remove a step without executing it:
 
 ```bash
-pipetui pipeline create myapp my-pipeline \
-  --step "pytest" \
-  --step "ruff check ." \
-  --step "ruff format --check ."
-pipetui pipeline run my-pipeline
+pipetui step edit my-api ci 2 "ruff check --output-format=concise"
+pipetui step delete my-api ci 3
 ```
 
-Launch the live dashboard in a separate terminal:
+Run the pipeline and inspect its build:
 
 ```bash
-pipetui dashboard
+pipetui pipeline run my-api ci
+pipetui build list my-api
+pipetui build logs 12
 ```
+
+In another terminal, start the read-only dashboard before or during execution:
+
+```bash
+pipetui tui
+```
+
+Every pipeline run creates a persistent build. Steps execute in order and stop at the first failure. Output, errors, exit codes, durations, and the source pipeline are stored with the build.
 
 ## Command reference
 
@@ -89,7 +94,7 @@ pipetui dashboard
 pipetui start                         Start the monitoring service
 pipetui status                        Show system status
 pipetui reset                         Clear build, deployment, and alert history
-pipetui dashboard                     Launch the live terminal dashboard
+pipetui tui                            Launch the read-only Rich dashboard
 ```
 
 ### Projects
@@ -97,20 +102,24 @@ pipetui dashboard                     Launch the live terminal dashboard
 ```text
 pipetui project add <name> <path>     Register a project directory
 pipetui project list                  List registered projects
-pipetui project info <name>           Show project, build, and deployment details
+pipetui project edit <name>           Change path or name with --path/--name
+pipetui project delete <name>         Delete a project and related data
 ```
+
+Deleting a project cascades to its pipelines, steps, builds, logs, and deployments. Deleting a pipeline leaves existing builds as historical records.
 
 ### Builds
 
 ```text
 pipetui build run <project>           Detect and run the project's build command
-pipetui build history                 Show build history
-pipetui build list                    Alias for build history
+pipetui build list [<project>]        Show build history
+pipetui build history                 Alias for build list
 pipetui build show-logs <project>     List logs for a project's builds
 pipetui build show-logs <project> --last
                                       Show the latest build log
 pipetui build show-logs <project> --id <id>
                                       Show a build log by ID
+pipetui build logs <id>               Show output for a build ID
 pipetui build tail <project>          Stream the latest build log
 ```
 
@@ -124,18 +133,30 @@ Build detection checks for these files in order:
 
 If none is found, PipeTUI records a command that prints `No build system detected`.
 
-### Deployments and pipelines
+### Pipelines and steps
 
 ```text
-pipetui deploy run <project> <environment>
-pipetui deploy history
-pipetui docker deploy <project> <environment>
+pipetui pipeline list <project>                 List pipelines
+pipetui pipeline create <project> [<name>]      Create an empty pipeline
+pipetui pipeline edit <project> <name> --name <new-name>
+                                                  Rename a pipeline
+pipetui pipeline delete <project> <name>         Delete a pipeline
+pipetui pipeline run <project> <name>            Execute a pipeline
 
-pipetui pipeline create <project>     Create the default build/deploy pipeline
-pipetui pipeline run <project>        Run a project's pipeline
+pipetui step list <project> <pipeline>           List pipeline steps
+pipetui step add <project> <pipeline> <order> <command>
+                                                  Append a command step
+pipetui step edit <project> <pipeline> <order> <command>
+                                                  Edit a command step
+pipetui step delete <project> <pipeline> <order> Delete a step
 ```
 
-`docker deploy` uses the Docker plugin to build an image from the registered project directory and start a container. The Docker daemon and Docker CLI must be available for this command.
+### Deployments
+
+```text
+pipetui deploy run <project> <environment>       Deploy a project
+pipetui deploy history                           Show deployment history
+```
 
 ### Alerts and logs
 
@@ -157,7 +178,8 @@ core/      Configuration and event bus
 services/  Build, deployment, pipeline, monitoring, alert, and log logic
 plugins/   Git/Docker plugin implementations and plugin loading
 storage/   SQLAlchemy models and SQLite access
-utils/     Dashboard and shared helpers
+utils/     Shared helpers
+tui/       Read-only Rich observation dashboard
 tests/     Service and model tests
 docs/      Manual page source
 ```
@@ -176,7 +198,7 @@ Run the CLI directly from the repository when needed:
 python -m cli.main --help
 ```
 
-The project uses Click for the CLI, SQLAlchemy for persistence, Rich for terminal rendering, and psutil for system metrics.
+The project uses Click for CLI control, SQLAlchemy for persistence, and Rich for terminal rendering. The CLI handles input, validation, CRUD, execution, and errors; the TUI only reads and displays stored state.
 
 ## Limitations
 

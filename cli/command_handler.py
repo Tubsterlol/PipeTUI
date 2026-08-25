@@ -12,7 +12,9 @@ from storage.database import Database
 from services.deploy_service import DeployService
 from services.log_service import LogService
 from services.pipeline_service import PipelineService
+from services.project_service import ProjectService
 from core.config import Config
+from cli.alert_commands import alerts
 
 
 @click.group(
@@ -25,7 +27,7 @@ def cli(ctx):
     """PipeTUI DevOps CLI"""
 
     if ctx.invoked_subcommand is None:
-        from tui.screens.main import PipeTUIApp
+        from tui.app import PipeTUIApp
 
         PipeTUIApp().run()
 
@@ -115,11 +117,15 @@ def run_build(project):
         click.echo(result["stderr"])
 
 
-@build.command()
-def history():
+@build.command(name="list")
+@click.argument("project", required=False)
+def history(project):
     """Show build history"""
-    db = Database()
-    builds = db.get_builds()
+    builds = (
+        BuildService(Database()).get_project_builds(project)
+        if project
+        else BuildService(Database()).get_builds()
+    )
 
     if not builds:
         click.echo("No builds found.")
@@ -128,13 +134,17 @@ def history():
     click.echo("\nBUILD HISTORY")
     click.echo("-------------")
 
-    for b in builds:
-        click.echo(f"#{b[4]} | {b[0]} | {b[1]} | {b[2]} | {b[3]}")
+    click.echo("BUILD    PIPELINE       STATUS      DURATION")
+    for item in builds:
+        click.echo(
+            f"#{item.id:<7} {item.pipeline_name or 'manual':<14} "
+            f"{item.status:<11} {item.duration if item.duration is not None else '-'}s"
+        )
 
     click.echo("")
 
 
-build.add_command(history, name="list")
+build.add_command(history, name="history")
 
 
 @build.command(name="show-logs")
@@ -180,6 +190,23 @@ def show_build_logs(project, last, build_id):
         click.echo(f"ID:{b[0]} | Status:{b[2]} | Started:{b[3]}")
 
     click.echo("")
+
+
+@build.command(name="logs")
+@click.argument("build_id", type=int)
+def build_logs(build_id):
+    """Show output for a build."""
+    db = Database()
+    build = db.get_build_log(build_id)
+    if build is None:
+        click.echo(f"Build {build_id} not found.")
+        return
+    click.echo(f"BUILD #{build[0]}")
+    click.echo(f"Project: {build[1]}")
+    click.echo(f"Status: {build[2]}")
+    click.echo(f"Duration: {build[7] if build[7] is not None else '-'}s")
+    click.echo("\nLOG\n---")
+    click.echo(build[3] or "No log available.")
 
 
 @build.command()
@@ -362,6 +389,26 @@ def add(name, path):
     click.echo(f"Project '{name}' added.")
 
 
+@project.command()
+@click.argument("name")
+@click.option("--name", "new_name")
+@click.option("--path")
+def edit(name, new_name, path):
+    """Update project name and/or filesystem path."""
+    if new_name is None and path is None:
+        raise click.UsageError("Provide --name or --path.")
+    ProjectService(Database()).update_project(name, new_name=new_name, path=path)
+    click.echo(f"Project '{name}' updated.")
+
+
+@project.command()
+@click.argument("name")
+def delete(name):
+    """Delete a project and its related data."""
+    ProjectService(Database()).delete_project(name)
+    click.echo(f"Project '{name}' deleted.")
+
+
 # -------------------------
 # PIPELINE COMMANDS
 # -------------------------
@@ -376,39 +423,151 @@ def pipeline():
 @pipeline.command()
 @click.argument("project")
 @click.argument("name", required=False, default="default")
-@click.option(
-    "--step",
-    "steps",
-    multiple=True,
-    default=("pytest", "ruff check .", "ruff format --check ."),
-    help="Command to run in order; may be supplied more than once.",
-)
-def create(project, name, steps):
-    """Create pipeline"""
+def create(project, name):
+    """Create an empty pipeline for a registered project."""
     db = Database()
-
-    pipeline_id = db.create_pipeline(project, name)
-    for order, command in enumerate(steps, start=1):
-        db.add_pipeline_step(pipeline_id, order, "command", command)
+    if db.get_project(project) is None:
+        raise click.ClickException(
+            f"Project '{project}' does not exist. "
+            "Use: pipetui pipeline create PROJECT [PIPELINE_NAME]"
+        )
+    db.create_pipeline(project, name)
 
     click.echo(f"Pipeline '{name}' created for {project}")
 
 
+@pipeline.command(name="list")
+@click.argument("project")
+def list_pipelines(project):
+    """List pipelines for a project."""
+    pipelines = Database().get_project_pipelines(project)
+    if not pipelines:
+        click.echo("No pipelines found.")
+        return
+    for item in pipelines:
+        click.echo(f"{item['id']}  {item['name']}")
+
+
+@pipeline.command(name="edit")
+@click.argument("project")
+@click.argument("pipeline_name")
+@click.option("--name", "new_name", required=True)
+def edit_pipeline(project, pipeline_name, new_name):
+    """Rename a pipeline."""
+    db = Database()
+    pipeline = db.get_pipeline_by_name(pipeline_name, project)
+    if pipeline is None:
+        click.echo(f"Pipeline '{pipeline_name}' not found for {project}.")
+        return
+    PipelineService(db).update_pipeline(pipeline["id"], new_name)
+    click.echo(f"Pipeline '{pipeline_name}' renamed to '{new_name}'.")
+
+
+@pipeline.command(name="delete")
+@click.argument("project")
+@click.argument("pipeline_name")
+def delete_pipeline(project, pipeline_name):
+    """Delete a pipeline."""
+    db = Database()
+    pipeline = db.get_pipeline_by_name(pipeline_name, project)
+    if pipeline is None:
+        click.echo(f"Pipeline '{pipeline_name}' not found for {project}.")
+        return
+    PipelineService(db).delete_pipeline(pipeline["id"])
+    click.echo(f"Pipeline '{pipeline_name}' deleted.")
+
+
+@cli.group()
+def step():
+    """Pipeline step commands."""
+    pass
+
+
+@step.command(name="list")
+@click.argument("project")
+@click.argument("pipeline_name")
+def list_steps(project, pipeline_name):
+    """List steps for a pipeline."""
+    db = Database()
+    pipeline_ref = db.get_pipeline_by_name(pipeline_name, project)
+    pipeline = PipelineService(db).get_pipeline(pipeline_ref["id"]) if pipeline_ref else None
+    if pipeline is None:
+        click.echo(f"Pipeline '{pipeline_name}' not found for {project}.")
+        return
+    click.echo(f"PIPELINE: {pipeline_name}")
+    for item in pipeline["steps"]:
+        click.echo(f"{item['order']}  {item['value']}")
+
+
+@step.command(name="add")
+@click.argument("project")
+@click.argument("pipeline_name")
+@click.argument("step_order", type=int)
+@click.argument("command")
+def add_step(project, pipeline_name, step_order, command):
+    """Append a command step to a pipeline."""
+    db = Database()
+    service = PipelineService(db)
+    pipeline_ref = db.get_pipeline_by_name(pipeline_name, project)
+    pipeline = service.get_pipeline(pipeline_ref["id"]) if pipeline_ref else None
+    if pipeline is None:
+        click.echo(f"Pipeline '{pipeline_name}' not found for {project}.")
+        return
+    if step_order != len(pipeline["steps"]) + 1:
+        raise click.UsageError("Step order must append at the end of the pipeline.")
+    service.add_step(pipeline_ref["id"], step_order, "command", command)
+    click.echo(f"Step added to pipeline '{pipeline_name}'.")
+
+
+@step.command(name="edit")
+@click.argument("project")
+@click.argument("pipeline_name")
+@click.argument("step_order", type=int)
+@click.argument("command")
+def edit_step(project, pipeline_name, step_order, command):
+    """Edit a pipeline step command."""
+    db = Database()
+    pipeline_ref = db.get_pipeline_by_name(pipeline_name, project)
+    pipeline = PipelineService(db).get_pipeline(pipeline_ref["id"]) if pipeline_ref else None
+    if pipeline is None or not 1 <= step_order <= len(pipeline["steps"]):
+        raise click.UsageError("Pipeline or step order not found.")
+    PipelineService(db).update_step(pipeline["steps"][step_order - 1]["id"], command)
+    click.echo(f"Step {step_order} updated in pipeline '{pipeline_name}'.")
+
+
+@step.command(name="delete")
+@click.argument("project")
+@click.argument("pipeline_name")
+@click.argument("step_order", type=int)
+def delete_step(project, pipeline_name, step_order):
+    """Delete a pipeline step."""
+    db = Database()
+    pipeline_ref = db.get_pipeline_by_name(pipeline_name, project)
+    pipeline = PipelineService(db).get_pipeline(pipeline_ref["id"]) if pipeline_ref else None
+    if pipeline is None or not 1 <= step_order <= len(pipeline["steps"]):
+        raise click.UsageError("Pipeline or step order not found.")
+    PipelineService(db).delete_step(pipeline["steps"][step_order - 1]["id"])
+    click.echo(f"Step {step_order} deleted from pipeline '{pipeline_name}'.")
+
+
 @pipeline.command()
 @click.argument("pipeline_ref")
+@click.argument("pipeline_name", required=False)
 @click.option(
     "--name",
-    "pipeline_name",
+    "pipeline_name_option",
     default=None,
     help="Pipeline name when passing a project.",
 )
-def run(pipeline_ref, pipeline_name):
+def run(pipeline_ref, pipeline_name, pipeline_name_option):
     """Run pipeline"""
     db = Database()
     project_data = db.get_project(pipeline_ref)
     if project_data is not None:
         project = pipeline_ref
-        pipeline = db.get_pipeline_by_name(pipeline_name or "default", project)
+        pipeline = db.get_pipeline_by_name(
+            pipeline_name or pipeline_name_option or "default", project
+        )
         if pipeline is None:
             click.echo("Pipeline not found.")
             return
@@ -459,6 +618,9 @@ def reset():
 @cli.command()
 def tui():
     """Launch the PipeTUI interface."""
-    from tui.screens.main import PipeTUIApp
+    from tui.app import PipeTUIApp
 
     PipeTUIApp().run()
+
+
+cli.add_command(alerts)

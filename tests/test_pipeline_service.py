@@ -104,3 +104,36 @@ def test_pipeline_steps_are_ordered():
 
     assert pipeline["steps"][1]["order"] == 2
     assert pipeline["steps"][1]["value"] == "pytest"
+
+
+def test_update_pipeline_and_step():
+    database = DatabaseForTest()
+    add_project(database)
+    service = PipelineService(database)
+
+    pipeline_id = service.create_pipeline("test-project", "test-pipeline")
+    step = service.add_step(pipeline_id, 1, "command", "pytest")
+
+    service.update_pipeline(pipeline_id, "renamed")
+    service.update_step(step["id"], "ruff check .")
+
+    pipeline = service.get_pipeline(pipeline_id)
+    assert pipeline["name"] == "renamed"
+    assert pipeline["steps"][0]["value"] == "ruff check ."
+
+
+def test_delete_step_renumbers_remaining_steps():
+    database = DatabaseForTest()
+    add_project(database)
+    service = PipelineService(database)
+
+    pipeline_id = service.create_pipeline("test-project", "test-pipeline")
+    first = service.add_step(pipeline_id, 1, "command", "pytest")
+    service.add_step(pipeline_id, 2, "command", "ruff check .")
+
+    service.delete_step(first["id"])
+
+    pipeline = service.get_pipeline(pipeline_id)
+    assert len(pipeline["steps"]) == 1
+    assert pipeline["steps"][0]["order"] == 1
+    assert pipeline["steps"][0]["value"] == "ruff check ."

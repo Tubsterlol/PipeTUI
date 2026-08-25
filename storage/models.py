@@ -15,11 +15,17 @@ class Project(Base):
 
     path: Mapped[str] = mapped_column(String(1024))
 
-    builds: Mapped[list["Build"]] = relationship(back_populates="project")
+    builds: Mapped[list["Build"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
 
-    pipelines: Mapped[list["Pipeline"]] = relationship(back_populates="project")
+    pipelines: Mapped[list["Pipeline"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
 
-    deployments: Mapped[list["Deployment"]] = relationship(back_populates="project")
+    deployments: Mapped[list["Deployment"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
 
 
 class Build(Base):
