@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from sqlalchemy import create_engine, inspect
 from sqlalchemy.orm import sessionmaker
 
@@ -12,9 +14,15 @@ from storage.models import (
 )
 
 
+DEFAULT_DATABASE_PATH = Path(__file__).resolve().parents[1] / "devops.db"
+
+
 class Database:
 
-    def __init__(self, database_url="sqlite:///devops.db"):
+    def __init__(self, database_url=None):
+
+        if database_url is None:
+            database_url = f"sqlite:///{DEFAULT_DATABASE_PATH.as_posix()}"
 
         self.engine = create_engine(database_url)
 

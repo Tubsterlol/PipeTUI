@@ -116,11 +116,11 @@ pipetui build tail <project>          Stream the latest build log
 
 Build detection checks for these files in order:
 
-| Detected file | Command |
-| --- | --- |
-| `package.json` | `npm run build` |
-| `Makefile` | `make` |
-| `build.py` | `python build.py` |
+| Detected file  | Command           |
+| -------------- | ----------------- |
+| `package.json` | `npm run build`   |
+| `Makefile`     | `make`            |
+| `build.py`     | `python build.py` |
 
 If none is found, PipeTUI records a command that prints `No build system detected`.
 
@@ -149,7 +149,7 @@ pipetui logs build <id>               Show structured output for a build
 
 ## Data and architecture
 
-By default, PipeTUI creates `devops.db` in the current working directory. The database stores projects, builds, deployments, alerts, pipelines, and pipeline steps.
+By default, PipeTUI creates `devops.db` in the PipeTUI project directory, regardless of the current working directory. The database stores projects, builds, deployments, alerts, pipelines, and pipeline steps.
 
 ```text
 cli/       Click commands and command wiring
@@ -177,16 +177,6 @@ python -m cli.main --help
 ```
 
 The project uses Click for the CLI, SQLAlchemy for persistence, Rich for terminal rendering, and psutil for system metrics.
-
-## API
-
-PipeTUI also includes a FastAPI application for projects, pipelines, and builds:
-
-```bash
-uvicorn api.main:app --reload
-```
-
-Available endpoints include `GET /health`, project creation/listing, pipeline creation and inspection, pipeline execution at `POST /pipelines/{id}/run`, and build listing/details. Pipeline execution uses the same service layer as the CLI and persists its result as a build.
 
 ## Limitations
 
