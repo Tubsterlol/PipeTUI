@@ -1,0 +1,84 @@
+Screen {
+    layout: vertical;
+}
+
+Header {
+    height: 3;
+}
+
+Footer {
+    height: 1;
+}
+
+#main {
+    height: 1fr;
+}
+
+#left {
+    width: 32;
+}
+
+#right {
+    width: 1fr;
+}
+
+.panel {
+    border: solid $accent;
+    margin: 0 1 1 0;
+}
+
+.panel-title {
+    height: 1;
+    background: $panel;
+    color: $text;
+    text-style: bold;
+    padding-left: 1;
+}
+
+#projects-panel {
+    height: 2fr;
+}
+
+#builds-panel {
+    height: 1fr;
+}
+
+#pipelines-panel {
+    height: 2fr;
+    margin-right: 0;
+}
+
+#bottom-panels {
+    height: 1fr;
+}
+
+#status-panel {
+    width: 1fr;
+}
+
+#activity-panel {
+    width: 1fr;
+    margin-right: 0;
+}
+
+#projects,
+#pipelines {
+    height: 1fr;
+}
+
+#projects > ListItem,
+#pipelines > ListItem {
+    padding: 0 1;
+}
+
+#projects > ListItem.-highlight,
+#pipelines > ListItem.-highlight {
+    background: $accent;
+    color: $text;
+}
+
+#builds,
+#status,
+#activity {
+    padding: 1;
+}

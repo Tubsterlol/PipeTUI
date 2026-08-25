@@ -15,11 +15,19 @@ from services.pipeline_service import PipelineService
 from core.config import Config
 
 
-@click.group(context_settings={"help_option_names": ["-h", "--help"]})
+@click.group(
+    context_settings={"help_option_names": ["-h", "--help"]},
+    invoke_without_command=True,
+)
 @click.version_option("0.1.0", prog_name="PipeTUI")
-def cli():
+@click.pass_context
+def cli(ctx):
     """PipeTUI DevOps CLI"""
-    pass
+
+    if ctx.invoked_subcommand is None:
+        from tui.screens.main import start_tui
+
+        start_tui()
 
 
 # -------------------------
@@ -436,5 +444,9 @@ def reset():
     click.echo("All build, deployment, and alert history cleared.")
 
 
-if __name__ == "__main__":
-    cli()
+@cli.command()
+def tui():
+    """Launch the PipeTUI interface."""
+    from tui.app import PipeTUIApp
+
+    PipeTUIApp().run()

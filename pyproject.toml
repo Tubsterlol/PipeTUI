@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "pipetui"
 version = "0.1.0"
-description = "PipeTUI DevOps CLI"
+description = "PipeTUI DevOps TUI"
 dependencies = [
     "click",
     "sqlalchemy",
@@ -18,7 +18,7 @@ dependencies = [
 
 
 [project.scripts]
-pipetui = "cli.main:cli"
+pipetui = "cli.main:main"
 
 [tool.setuptools.packages.find]
 include = [
@@ -29,5 +29,6 @@ include = [
     "plugins*",
     "pipetui_api*",
     "logs*",
-    "utils*"
+    "utils*",
+    "tui*",
 ]
