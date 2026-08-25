@@ -1,6 +1,7 @@
 import os
 import importlib
 
+
 class PluginManager:
     def __init__(self):
         self.plugins = []

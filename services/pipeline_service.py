@@ -93,8 +93,7 @@ class PipelineService:
             raise ValueError(f"Project '{pipeline['project']}' does not exist")
 
         steps = [
-            (step["order"], step["type"], step["value"])
-            for step in pipeline["steps"]
+            (step["order"], step["type"], step["value"]) for step in pipeline["steps"]
         ]
         build_service = BuildService(self.database, self.event_bus)
         build_id = build_service.create_build(project["name"])
@@ -134,9 +133,7 @@ class PipelineService:
             pipeline = session.get(Pipeline, pipeline_id)
 
             if pipeline is None:
-                raise ValueError(
-                    f"Pipeline {pipeline_id} does not exist"
-                )
+                raise ValueError(f"Pipeline {pipeline_id} does not exist")
 
             session.delete(pipeline)
             session.commit()

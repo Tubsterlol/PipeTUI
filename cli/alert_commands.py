@@ -1,6 +1,7 @@
 import click
 from storage.database import Database
 
+
 @click.group()
 def alerts():
     pass
@@ -8,7 +9,6 @@ def alerts():
 
 @alerts.command()
 def show():
-
     db = Database()
     alerts = db.get_alerts()
 
@@ -18,7 +18,6 @@ def show():
 
 @alerts.command()
 def clear():
-
     db = Database()
     db.clear_alerts()
 

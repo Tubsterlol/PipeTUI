@@ -92,7 +92,7 @@ class PipeTUIApp(App):
 
         yield Footer()
 
-    # 
+    #
     def on_mount(self) -> None:
         self.load_projects()
 
@@ -105,26 +105,16 @@ class PipeTUIApp(App):
         project_list.clear()
 
         if not self.projects:
-            project_list.append(
-                ListItem(
-                    Label("No projects registered.")
-                )
-            )
+            project_list.append(ListItem(Label("No projects registered.")))
 
             self.query_one("#pipelines", ListView).clear()
 
-            self.query_one("#status", Static).update(
-                "No projects registered."
-            )
+            self.query_one("#status", Static).update("No projects registered.")
 
             return
 
         for name, path in self.projects:
-            project_list.append(
-                ListItem(
-                    Label(name)
-                )
-            )
+            project_list.append(ListItem(Label(name)))
 
         project_list.index = 0
 
@@ -134,7 +124,6 @@ class PipeTUIApp(App):
         self,
         event: ListView.Selected,
     ) -> None:
-
         if event.list_view.id == "projects":
             self.select_project(event.list_view)
 
@@ -160,20 +149,12 @@ class PipeTUIApp(App):
         self.load_pipelines(name)
 
         self.query_one("#builds", Static).update(
-            f"Project: {name}\n\n"
-            "No builds loaded."
+            f"Project: {name}\n\nNo builds loaded."
         )
 
-        self.query_one("#status", Static).update(
-            f"Project\n"
-            f"  {name}\n\n"
-            f"Path\n"
-            f"  {path}"
-        )
+        self.query_one("#status", Static).update(f"Project\n  {name}\n\nPath\n  {path}")
 
-        self.query_one("#activity", Static).update(
-            f"Selected project: {name}"
-        )
+        self.query_one("#activity", Static).update(f"Selected project: {name}")
 
     # pipelines panel
     def load_pipelines(self, project: str) -> None:
@@ -189,9 +170,7 @@ class PipeTUIApp(App):
 
             pipelines = (
                 session.query(Pipeline)
-                .filter(
-                    Pipeline.project_name == project
-                )
+                .filter(Pipeline.project_name == project)
                 .order_by(Pipeline.id.desc())
                 .all()
             )
@@ -215,23 +194,12 @@ class PipeTUIApp(App):
             ]
 
         if not self.pipelines:
-            pipeline_list.append(
-                ListItem(
-                    Label("No pipelines.")
-                )
-            )
+            pipeline_list.append(ListItem(Label("No pipelines.")))
 
             return
 
         for pipeline in self.pipelines:
-            pipeline_list.append(
-                ListItem(
-                    Label(
-                        f"▶ {pipeline['name']}"
-                    )
-                )
-
-            )
+            pipeline_list.append(ListItem(Label(f"▶ {pipeline['name']}")))
 
     def select_pipeline(self, pipeline_list: ListView) -> None:
         index = pipeline_list.index
@@ -253,9 +221,7 @@ class PipeTUIApp(App):
             step_lines = []
 
             for step in steps:
-                step_lines.append(
-                    f"  {step['order']}. {step['value']}"
-                )
+                step_lines.append(f"  {step['order']}. {step['value']}")
 
             steps_text = "\n".join(step_lines)
 
@@ -263,9 +229,7 @@ class PipeTUIApp(App):
             steps_text = "  No steps configured."
 
         self.query_one("#activity", Static).update(
-            f"Pipeline: {pipeline['name']}\n\n"
-            f"Steps\n"
-            f"{steps_text}"
+            f"Pipeline: {pipeline['name']}\n\nSteps\n{steps_text}"
         )
 
         self.query_one("#status", Static).update(

@@ -18,10 +18,7 @@ def system_panel():
     cpu = psutil.cpu_percent()
     memory = psutil.virtual_memory().percent
 
-    text = (
-        f"CPU Usage: {cpu}%\n"
-        f"Memory Usage: {memory}%"
-    )
+    text = f"CPU Usage: {cpu}%\nMemory Usage: {memory}%"
 
     return Panel(text, title="SYSTEM HEALTH")
 
@@ -63,11 +60,7 @@ def builds_table():
         exit_code = build[6]
         duration = build[7]
 
-        duration_text = (
-            f"{duration:.2f}s"
-            if duration is not None
-            else "-"
-        )
+        duration_text = f"{duration:.2f}s" if duration is not None else "-"
 
         table.add_row(
             str(build_id),
@@ -109,11 +102,7 @@ def activity_panel():
     lines = []
 
     for build in builds:
-        lines.append(
-            f"Build #{build[4]} | "
-            f"{build[0]} | "
-            f"{build[1].upper()}"
-        )
+        lines.append(f"Build #{build[4]} | {build[0]} | {build[1].upper()}")
 
     for deployment in deployments:
         lines.append(
@@ -166,24 +155,14 @@ def start_dashboard():
         screen=True,
     ):
         while True:
-            layout["system"].update(
-                system_panel()
-            )
+            layout["system"].update(system_panel())
 
-            layout["alerts"].update(
-                alerts_panel()
-            )
+            layout["alerts"].update(alerts_panel())
 
-            layout["builds"].update(
-                builds_table()
-            )
+            layout["builds"].update(builds_table())
 
-            layout["deployments"].update(
-                deploy_table()
-            )
+            layout["deployments"].update(deploy_table())
 
-            layout["bottom"].update(
-                activity_panel()
-            )
+            layout["bottom"].update(activity_panel())
 
             time.sleep(2)

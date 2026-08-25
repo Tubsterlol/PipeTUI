@@ -6,16 +6,10 @@ from storage.models import Base, Project
 
 
 class DatabaseForTest:
-
     def __init__(self):
+        self.engine = create_engine("sqlite:///:memory:")
 
-        self.engine = create_engine(
-            "sqlite:///:memory:"
-        )
-
-        self.Session = sessionmaker(
-            bind=self.engine
-        )
+        self.Session = sessionmaker(bind=self.engine)
 
         Base.metadata.create_all(self.engine)
 
@@ -24,13 +18,9 @@ class DatabaseForTest:
 
 
 def add_project(database):
-
     session = database.get_session()
 
-    project = Project(
-        name="test-project",
-        path="/tmp/test-project"
-    )
+    project = Project(name="test-project", path="/tmp/test-project")
 
     session.add(project)
     session.commit()
@@ -39,16 +29,13 @@ def add_project(database):
 
 
 def test_create_build():
-
     database = DatabaseForTest()
 
     add_project(database)
 
     service = BuildService(database)
 
-    build_id = service.create_build(
-        "test-project"
-    )
+    build_id = service.create_build("test-project")
 
     build = service.get_build(build_id)
 
@@ -58,22 +45,15 @@ def test_create_build():
 
 
 def test_finish_build():
-
     database = DatabaseForTest()
 
     add_project(database)
 
     service = BuildService(database)
 
-    build_id = service.create_build(
-        "test-project"
-    )
+    build_id = service.create_build("test-project")
 
-    service.finish_build(
-        build_id,
-        "success",
-        "Build completed successfully"
-    )
+    service.finish_build(build_id, "success", "Build completed successfully")
 
     build = service.get_build(build_id)
 
@@ -82,7 +62,6 @@ def test_finish_build():
 
 
 def test_get_project_builds():
-
     database = DatabaseForTest()
 
     add_project(database)
@@ -92,14 +71,12 @@ def test_get_project_builds():
     service.create_build("test-project")
     service.create_build("test-project")
 
-    builds = service.get_project_builds(
-        "test-project"
-    )
+    builds = service.get_project_builds("test-project")
 
     assert len(builds) == 2
 
-def test_create_build_for_missing_project():
 
+def test_create_build_for_missing_project():
     database = DatabaseForTest()
 
     service = BuildService(database)
@@ -108,6 +85,4 @@ def test_create_build_for_missing_project():
         service.create_build("missing-project")
         assert False
     except ValueError as error:
-        assert str(error) == (
-            "Project 'missing-project' does not exist"
-        )
+        assert str(error) == ("Project 'missing-project' does not exist")

@@ -6,16 +6,10 @@ from storage.models import Base, Project
 
 
 class DatabaseForTest:
-
     def __init__(self):
+        self.engine = create_engine("sqlite:///:memory:")
 
-        self.engine = create_engine(
-            "sqlite:///:memory:"
-        )
-
-        self.Session = sessionmaker(
-            bind=self.engine
-        )
+        self.Session = sessionmaker(bind=self.engine)
 
         Base.metadata.create_all(self.engine)
 
@@ -24,13 +18,9 @@ class DatabaseForTest:
 
 
 def add_project(database):
-
     session = database.get_session()
 
-    project = Project(
-        name="test-project",
-        path="/tmp/test-project"
-    )
+    project = Project(name="test-project", path="/tmp/test-project")
 
     session.add(project)
     session.commit()
@@ -39,21 +29,15 @@ def add_project(database):
 
 
 def test_create_pipeline():
-
     database = DatabaseForTest()
 
     add_project(database)
 
     service = PipelineService(database)
 
-    pipeline_id = service.create_pipeline(
-        "test-project",
-        "test-pipeline"
-    )
+    pipeline_id = service.create_pipeline("test-project", "test-pipeline")
 
-    pipeline = service.get_pipeline(
-        pipeline_id
-    )
+    pipeline = service.get_pipeline(pipeline_id)
 
     assert pipeline is not None
     assert pipeline["name"] == "test-pipeline"
@@ -61,49 +45,31 @@ def test_create_pipeline():
 
 
 def test_create_pipeline_for_missing_project():
-
     database = DatabaseForTest()
 
     service = PipelineService(database)
 
     try:
-        service.create_pipeline(
-            "missing-project",
-            "test-pipeline"
-        )
+        service.create_pipeline("missing-project", "test-pipeline")
 
         assert False
 
     except ValueError as error:
-
-        assert str(error) == (
-            "Project 'missing-project' does not exist"
-        )
+        assert str(error) == ("Project 'missing-project' does not exist")
 
 
 def test_add_pipeline_step():
-
     database = DatabaseForTest()
 
     add_project(database)
 
     service = PipelineService(database)
 
-    pipeline_id = service.create_pipeline(
-        "test-project",
-        "test-pipeline"
-    )
+    pipeline_id = service.create_pipeline("test-project", "test-pipeline")
 
-    service.add_step(
-        pipeline_id,
-        1,
-        "command",
-        "pytest"
-    )
+    service.add_step(pipeline_id, 1, "command", "pytest")
 
-    pipeline = service.get_pipeline(
-        pipeline_id
-    )
+    pipeline = service.get_pipeline(pipeline_id)
 
     assert pipeline is not None
     assert len(pipeline["steps"]) == 1
@@ -116,35 +82,19 @@ def test_add_pipeline_step():
 
 
 def test_pipeline_steps_are_ordered():
-
     database = DatabaseForTest()
 
     add_project(database)
 
     service = PipelineService(database)
 
-    pipeline_id = service.create_pipeline(
-        "test-project",
-        "test-pipeline"
-    )
+    pipeline_id = service.create_pipeline("test-project", "test-pipeline")
 
-    service.add_step(
-        pipeline_id,
-        2,
-        "command",
-        "pytest"
-    )
+    service.add_step(pipeline_id, 2, "command", "pytest")
 
-    service.add_step(
-        pipeline_id,
-        1,
-        "command",
-        "ruff check ."
-    )
+    service.add_step(pipeline_id, 1, "command", "ruff check .")
 
-    pipeline = service.get_pipeline(
-        pipeline_id
-    )
+    pipeline = service.get_pipeline(pipeline_id)
 
     assert pipeline is not None
     assert len(pipeline["steps"]) == 2

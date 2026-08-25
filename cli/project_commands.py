@@ -9,7 +9,6 @@ def project():
 
 @project.command()
 def list():
-
     db = Database()
 
     projects = db.get_projects()
@@ -32,7 +31,6 @@ def list():
 @click.argument("name")
 @click.argument("path")
 def add(name, path):
-
     import os
 
     db = Database()
@@ -49,7 +47,6 @@ def add(name, path):
 @project.command()
 @click.argument("name")
 def info(name):
-
     db = Database()
 
     project_data = db.get_project(name)
@@ -113,7 +110,6 @@ def info(name):
         click.echo("No deployments found.")
 
     if stats:
-
         total, success = stats
         success = success or 0
         failed = total - success if total else 0
