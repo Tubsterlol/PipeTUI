@@ -14,3 +14,6 @@ class AlertService:
         print(f"[ALERT] {message}")
 
         self.db.insert_alert(alert_type, message, timestamp)
+
+    def get_alerts(self):
+        return self.db.get_alerts()

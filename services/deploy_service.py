@@ -10,6 +10,9 @@ class DeployService:
         self.logger = LogService()
         self.alert_service = AlertService(event_bus, database)
 
+    def get_deployments(self):
+        return self.database.get_deployments()
+
     def deploy(self, project, environment, plugin=None):
         print(f"Deploying {project} to {environment}")
 

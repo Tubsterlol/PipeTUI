@@ -25,7 +25,7 @@ def cli(ctx):
     """PipeTUI DevOps CLI"""
 
     if ctx.invoked_subcommand is None:
-        from tui.app import PipeTUIApp
+        from tui.screens.main import PipeTUIApp
 
         PipeTUIApp().run()
 
@@ -459,6 +459,6 @@ def reset():
 @cli.command()
 def tui():
     """Launch the PipeTUI interface."""
-    from tui.app import PipeTUIApp
+    from tui.screens.main import PipeTUIApp
 
     PipeTUIApp().run()

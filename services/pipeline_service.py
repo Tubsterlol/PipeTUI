@@ -83,6 +83,9 @@ class PipelineService:
         finally:
             session.close()
 
+    def get_project_pipelines(self, project):
+        return self.database.get_project_pipelines(project)
+
     def run_pipeline(self, pipeline_id):
         pipeline = self.get_pipeline(pipeline_id)
         if pipeline is None:
