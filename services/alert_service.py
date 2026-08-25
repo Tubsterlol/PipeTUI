@@ -1,10 +1,11 @@
 from datetime import datetime
+
 from storage.database import Database
 
 
 class AlertService:
-    def __init__(self, event_bus=None):
-        self.db = Database()
+    def __init__(self, event_bus=None, database=None):
+        self.db = database or Database()
         self.event_bus = event_bus
 
     def alert(self, alert_type, message):

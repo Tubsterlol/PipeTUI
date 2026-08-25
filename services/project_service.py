@@ -33,7 +33,6 @@ class ProjectService:
 
         finally:
             session.close()
-
     def list_projects(self):
         session = self.database.get_session()
 
@@ -66,3 +65,6 @@ class ProjectService:
             return ProjectRecord(name=project.name, path=project.path)
         finally:
             session.close()
+
+
+    

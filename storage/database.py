@@ -107,7 +107,32 @@ class Database:
                 )
                 for b in builds
             ]
+    def get_project_pipelines(self, project):
+        with self.get_session() as session:
+            pipelines = (
+                session.query(Pipeline)
+                .filter(Pipeline.project_name == project)
+                .order_by(Pipeline.id.desc())
+                .all()
+            )
 
+            return [
+                {
+                    "id": pipeline.id,
+                    "name": pipeline.name,
+                    "project": pipeline.project_name,
+                    "created_at": pipeline.created_at,
+                    "steps": [
+                        {
+                            "order": step.step_order,
+                            "type": step.step_type,
+                            "value": step.step_value,
+                        }
+                        for step in pipeline.steps
+                    ],
+                }
+                for pipeline in pipelines
+            ]
     def get_last_build(self, project):
         builds = self.get_project_builds(project)
         if not builds:
