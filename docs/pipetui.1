@@ -1,4 +1,4 @@
-.TH PIPETUI 1 "April 2026" "PipeTUI 0.1.0" "PipeTUI DevOps CLI"
+.TH PIPETUI 1 "September 2026" "PipeTUI 1.0.0" "PipeTUI DevOps CLI"
 
 .SH NAME
 pipetui \- lightweight DevOps pipeline CLI
@@ -7,14 +7,23 @@ pipetui \- lightweight DevOps pipeline CLI
 .B pipetui
 [\fICOMMAND\fR] [\fIOPTIONS\fR]
 
-.SH DESCRIPTION
-PipeTUI is a lightweight DevOps command line interface for managing
-projects, builds, deployments, logs, and monitoring pipelines.
+.B pipetui
+.B --version
 
-It provides a simple local DevOps workflow without requiring complex
-CI/CD infrastructure.
+.SH DESCRIPTION
+PipeTUI is a local DevOps command-line tool for registering projects, running builds,
+executing pipelines, deploying applications, and inspecting history from a terminal.
 
 .SH SYSTEM COMMANDS
+
+.TP
+.B pipetui
+Launch the PipeTUI TUI (terminal user interface).
+
+.TP
+.B pipetui tui
+Launch the PipeTUI interface.
+
 .TP
 .B pipetui start
 Start the DevOps monitoring service.
@@ -25,44 +34,72 @@ Display the current status of the DevOps system.
 
 .TP
 .B pipetui reset
-Clear build, deployment, and alert history.
+Clear all build, deployment, and alert history.
 
 .SH PROJECT COMMANDS
-.TP
-.B pipetui project add <name> <path>
-Register a new project with PipeTUI.
 
 .TP
 .B pipetui project list
 List all registered projects.
 
 .TP
-.B pipetui project info <name>
-Display detailed information about a project including:
-build status, deployment status, and build statistics.
+.B pipetui project add \fINAME\fR \fIPATH\fR
+Register a new project with PipeTUI. The path must be a valid directory.
+
+.TP
+.B pipetui project edit \fINAME\fR [\fI--name NEW_NAME\fR] [\fI--path NEW_PATH\fR]
+Update a project's name and/or filesystem path.
+
+.TP
+.B pipetui project delete \fINAME\fR
+Delete a project and its related data.
 
 .SH BUILD COMMANDS
+
 .TP
-.B pipetui build run <project>
+.B pipetui build run \fIPROJECT\fR
 Run a build for the specified project.
 
 PipeTUI automatically detects the build system:
 
 .RS
+.nf
 npm projects → npm run build
-.br
 Makefile → make
-.br
 Python build script → python build.py
+.fi
 .RE
 
 .TP
+.B pipetui build list [\fIPROJECT\fR]
+Show build history. If PROJECT is specified, show builds for that project only.
+
+.TP
 .B pipetui build history
-Show build history across all projects.
+Alias for: pipetui build list
+
+.TP
+.B pipetui build logs \fIBUILD_ID\fR
+Show output for a specific build. Use an integer BUILD_ID.
+
+.TP
+.B pipetui build show-logs \fIPROJECT\fR [\fI--last\fR] [\fI--id BUILD_ID\fR]
+Show build logs for a project.
+Use
+.B --last
+to show the most recent build log.
+Use
+.B --id BUILD_ID
+to show logs for a specific build ID.
+
+.TP
+.B pipetui build tail \fIPROJECT\fR
+Live stream build logs for a project. Press CTRL+C to stop.
 
 .SH DEPLOYMENT COMMANDS
+
 .TP
-.B pipetui deploy run <project> <environment>
+.B pipetui deploy run \fIPROJECT\fR \fIENVIRONMENT\fR
 Deploy a project to a target environment.
 
 .TP
@@ -70,19 +107,110 @@ Deploy a project to a target environment.
 Display deployment history.
 
 .SH LOG COMMANDS
+
 .TP
 .B pipetui logs show
 Display all recorded logs.
 
 .TP
-.B pipetui logs filter <level>
+.B pipetui logs filter \fILEVEL\fR
 Filter logs by severity level (INFO, WARNING, ERROR).
 
+.TP
+.B pipetui logs build \fIBUILD_ID\fR
+Show structured output for a build.
+
+.SH PIPELINE COMMANDS
+
+.TP
+.B pipetui pipeline create \fIPROJECT\fR [\fIPIPELINE_NAME\fR]
+Create an empty pipeline for a registered project. Defaults to "default" pipeline name.
+
+.TP
+.B pipetui pipeline list \fIPROJECT\fR
+List all pipelines for a project.
+
+.TP
+.B pipetui pipeline edit \fIPROJECT\fR \fIPIPELINE_NAME\fR \fI--name NEW_NAME\fR
+Rename a pipeline.
+
+.TP
+.B pipetui pipeline delete \fIPROJECT\fR \fIPIPELINE_NAME\fR
+Delete a pipeline.
+
+.TP
+.B pipetui pipeline run \fIPIPELINE_REF\fR [\fIPIPELINE_NAME\fR] [\fI--name PIPELINE_NAME\fR]
+Run a pipeline. PIPELINE_REF can be a project name or pipeline name.
+
+.SH STEP COMMANDS
+
+.TP
+.B pipetui step list \fIPROJECT\fR \fIPIPELINE_NAME\fR
+List all steps for a pipeline.
+
+.TP
+.B pipetui step add \fIPROJECT\fR \fIPIPELINE_NAME\fR \fISTEP_ORDER\fR \fICOMMAND\fR
+Append a command step to a pipeline. STEP_ORDER must be the next sequential number.
+
+.TP
+.B pipetui step edit \fIPROJECT\fR \fIPIPELINE_NAME\fR \fISTEP_ORDER\fR \fICOMMAND\fR
+Edit a pipeline step command.
+
+.TP
+.B pipetui step delete \fIPROJECT\fR \fIPIPELINE_NAME\fR \fISTEP_ORDER\fR
+Delete a pipeline step.
+
+.SH ALERT COMMANDS
+
+.TP
+.B pipetui alerts show
+Display all system alerts.
+
+.TP
+.B pipetui alerts clear
+Clear all alerts.
+
+.SH DOCKER COMMANDS
+
+.TP
+.B pipetui docker deploy \fIPROJECT\fR \fIENVIRONMENT\fR
+Deploy a project using Docker plugin to a target environment.
+
+.SH OPTIONS
+
+.TP
+.B -h, --help
+Show help message and exit.
+
+.TP
+.B --version
+Show version and exit.
+
 .SH EXAMPLES
+
 Register a project:
 
 .nf
 pipetui project add api ~/Projects/api
+.fi
+
+Create a pipeline:
+
+.nf
+pipetui pipeline create api myPipeline
+.fi
+
+Add steps to a pipeline:
+
+.nf
+pipetui step add api myPipeline 1 "npm install"
+pipetui step add api myPipeline 2 "npm run build"
+.fi
+
+Run a pipeline:
+
+.nf
+pipetui pipeline run api myPipeline
 .fi
 
 Run a build:
@@ -97,19 +225,38 @@ Deploy to production:
 pipetui deploy run api prod
 .fi
 
+View build history:
+
+.nf
+pipetui build list api
+.fi
+
+Show build logs:
+
+.nf
+pipetui build logs 1
+.fi
+
 Filter error logs:
 
 .nf
 pipetui logs filter ERROR
 .fi
 
+View all alerts:
+
+.nf
+pipetui alerts show
+.fi
+
 .SH FILES
+
 .TP
 .I devops.db
 SQLite database used by PipeTUI, stored in the PipeTUI project directory.
 
-.SH AUTHOR
-PipeTUI Development Team
+.SH SEE ALSO
+.B https://github.com/Tubsterlol/PipeTUI
 
 .SH VERSION
-PipeTUI 0.1.0
+PipeTUI 1.0.0
